@@ -1,28 +1,7 @@
-import { WinstonModule } from 'nest-winston';
+import { WinstonModule, WinstonModuleOptions } from 'nest-winston';
 const winston = require('winston');
 
 const transports = {
-  console: new winston.transports.Console({
-    level: 'silly',
-    prettyPrint: true,
-    format: winston.format.combine(
-      winston.format.timestamp({
-        format: 'YYYY-MM-DD HH:mm:ss',
-      }),
-      winston.format.colorize({
-        colors: {
-          info: 'blue',
-          debug: 'yellow',
-          error: 'red',
-        },
-      }),
-      winston.format.printf((info) => {
-        return `[Nest] 5277   -  ${info.timestamp} [${info.level}] [${
-          info.context ? info.context : info.stack
-        }] ${info.message}`;
-      }),
-    ),
-  }),
   combinedFile: new winston.transports.File({
     filename:
       'logs/Combined_' +
@@ -40,18 +19,14 @@ const transports = {
   }),
 };
 
-export const CustomLogger = WinstonModule.createLogger({
+export const CustomWinstonLogger: WinstonModuleOptions = {
   format: winston.format.combine(
     winston.format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss',
     }),
     winston.format.errors({ stack: true }),
     winston.format.splat(),
-    winston.format.json(),
+    winston.format.prettyPrint(),
   ),
-  transports: [
-    transports.console,
-    transports.combinedFile,
-    transports.errorFile,
-  ],
-});
+  transports: [transports.combinedFile, transports.errorFile],
+};

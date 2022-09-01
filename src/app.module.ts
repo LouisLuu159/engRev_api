@@ -7,26 +7,13 @@ import databaseConfig from './config/databaseConfig';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerMiddleware } from './logger/LoggerMiddleware';
 import { WinstonModule } from 'nest-winston';
+import { AuthModule } from './auth/auth.module';
+import { CustomWinstonLogger } from './logger/WinstonLogger';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { UserModule } from './user/user.module';
 
 const winston = require('winston');
-
-const transports = {
-  combinedFile: new winston.transports.File({
-    filename:
-      'logs/Combined_' +
-      new Date(Date.now()).toISOString().split('T')[0] +
-      '.log',
-    level: 'info',
-    handleExceptions: true,
-  }),
-  errorFile: new winston.transports.File({
-    filename:
-      'logs/Errors_' +
-      new Date(Date.now()).toISOString().split('T')[0] +
-      '.log',
-    level: 'error',
-  }),
-};
 
 @Module({
   imports: [
@@ -42,20 +29,32 @@ const transports = {
       inject: [ConfigService],
     }),
 
-    WinstonModule.forRoot({
-      transports: [transports.combinedFile, transports.errorFile],
-      format: winston.format.combine(
-        winston.format.timestamp({
-          format: 'YYYY-MM-DD HH:mm:ss',
-        }),
-        winston.format.errors({ stack: true }),
-        winston.format.splat(),
-        winston.format.json(),
-      ),
+    WinstonModule.forRootAsync({
+      useFactory: () => CustomWinstonLogger,
+      inject: [],
     }),
+
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        ttl: config.get('throttle.ttl'),
+        limit: config.get('throttle.limit'),
+      }),
+    }),
+
+    AuthModule,
+
+    UserModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

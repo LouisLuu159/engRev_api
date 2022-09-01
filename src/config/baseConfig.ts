@@ -17,4 +17,8 @@ export default registerAs('base', () => ({
     host: process.env.REDIS_HOST,
     port: process.env.REDIS_PORT,
   },
+  throttle: {
+    ttl: process.env.THROTTLE_TTL,
+    limit: process.env.THROTTLE_LIMIT,
+  },
 }));
