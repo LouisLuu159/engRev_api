@@ -13,8 +13,6 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { UserModule } from './user/user.module';
 
-const winston = require('winston');
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -22,16 +20,13 @@ const winston = require('winston');
       load: [baseConfig, databaseConfig],
     }),
 
+    WinstonModule.forRoot(CustomWinstonLogger),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) =>
         await configService.get('database'),
       inject: [ConfigService],
-    }),
-
-    WinstonModule.forRootAsync({
-      useFactory: () => CustomWinstonLogger,
-      inject: [],
     }),
 
     ThrottlerModule.forRootAsync({
@@ -44,12 +39,12 @@ const winston = require('winston');
     }),
 
     AuthModule,
-
     UserModule,
   ],
   controllers: [AppController],
 
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

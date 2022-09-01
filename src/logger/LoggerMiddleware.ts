@@ -4,12 +4,10 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
+  private readonly logger = new Logger('HTTP');
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly winstonLogger: Logger,
-    private readonly logger: Logger,
-  ) {
-    logger = new Logger('HTTP');
-  }
+  ) {}
 
   use(request: Request, response: Response, next: NextFunction): void {
     const { ip, method, originalUrl, cookies, body } = request;
@@ -23,16 +21,15 @@ export class LoggerMiddleware implements NestMiddleware {
       console.log(message);
 
       if (statusCode >= 500) {
-        this.winstonLogger.error(message);
+        // this.winstonLogger.error(message);
         return this.logger.error(message);
       }
 
       if (statusCode >= 400) {
-        this.winstonLogger.warn(message);
+        // this.winstonLogger.warn(message);
         return this.logger.warn(message);
       }
-      this.winstonLogger.log(message);
-
+      // this.winstonLogger.log(message);
       return this.logger.log(message);
     });
 

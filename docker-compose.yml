@@ -44,6 +44,7 @@ services:
 
 networks:
   eng_rev:
+    driver: bridge
 
 volumes:
   redis:

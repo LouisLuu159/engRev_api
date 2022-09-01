@@ -8,7 +8,6 @@ const transports = {
       new Date(Date.now()).toISOString().split('T')[0] +
       '.log',
     level: 'info',
-    handleExceptions: true,
   }),
   errorFile: new winston.transports.File({
     filename:
