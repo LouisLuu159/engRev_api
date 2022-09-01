@@ -1,0 +1,50 @@
+version: '3.7'
+
+services:
+  api:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - .env
+    command: yarn start:dev
+    ports:
+      - 5000:5000
+    networks:
+      - eng_rev
+    depends_on:
+      - redis
+      - postgres
+
+  redis:
+    image: 'redis:alpine'
+    volumes:
+      - ./docker/redis:/data
+    ports:
+      - '6379:6379'
+    networks:
+      - eng_rev
+
+  postgres:
+    image: postgres
+    container_name: eng_rev_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - ${DB_PUBLISHED_PORT}:5432
+    volumes:
+      - ./docker/postgres:/var/lib/postgresql/data
+    networks:
+      - eng_rev
+
+networks:
+  eng_rev:
+
+volumes:
+  redis:
+    driver: local
