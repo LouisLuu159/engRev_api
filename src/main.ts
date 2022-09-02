@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { BaseConfigKey } from './config/baseConfig';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -43,11 +44,8 @@ async function bootstrap() {
   SwaggerModule.setup('v1', app, document);
 
   const configService = app.get<ConfigService>(ConfigService);
-
-  const PORT = configService.get('base.port');
-  console.log(PORT);
+  const PORT = configService.get(BaseConfigKey.PORT);
   await app.listen(PORT);
-
   warn(`APP IS LISTENING TO PORT ${PORT}`);
 }
 bootstrap();

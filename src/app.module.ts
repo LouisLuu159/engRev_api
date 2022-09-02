@@ -2,7 +2,7 @@ import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import baseConfig from './config/baseConfig';
+import baseConfig, { BaseConfigKey } from './config/baseConfig';
 import databaseConfig from './config/databaseConfig';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerMiddleware } from './logger/LoggerMiddleware';
@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { CustomWinstonLogger } from './logger/WinstonLogger';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { BullModule } from '@nestjs/bull';
 import { UserModule } from './user/user.module';
 
 @Module({
@@ -32,10 +33,16 @@ import { UserModule } from './user/user.module';
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        ttl: config.get('throttle.ttl'),
-        limit: config.get('throttle.limit'),
+      useFactory: async (configService: ConfigService) =>
+        await configService.get(BaseConfigKey.RATE_LIMIT),
+    }),
+
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        redis: configService.get(BaseConfigKey.REDIS),
       }),
+      inject: [ConfigService],
     }),
 
     AuthModule,
