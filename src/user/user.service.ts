@@ -9,7 +9,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
-import { ResponseErrors } from 'src/constants/ResponseErrors';
+import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 
 @Injectable()
 export class UserService {

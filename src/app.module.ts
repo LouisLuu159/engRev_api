@@ -2,17 +2,18 @@ import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import baseConfig, { BaseConfigKey } from './config/baseConfig';
-import databaseConfig from './config/databaseConfig';
+import baseConfig, { BaseConfigKey } from './common/config/baseConfig';
+import databaseConfig from './common/config/databaseConfig';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoggerMiddleware } from './logger/LoggerMiddleware';
+import { LoggerMiddleware } from './common/logger/LoggerMiddleware';
 import { WinstonModule } from 'nest-winston';
 import { AuthModule } from './auth/auth.module';
-import { CustomWinstonLogger } from './logger/WinstonLogger';
+import { CustomWinstonLogger } from './common/logger/WinstonLogger';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bull';
 import { UserModule } from './user/user.module';
+import { AllExceptionFilter } from './common/filter/exception.filter';
 
 @Module({
   imports: [
@@ -55,6 +56,10 @@ import { UserModule } from './user/user.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionFilter,
     },
   ],
 })

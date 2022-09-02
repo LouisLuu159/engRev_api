@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BaseConfigKey } from './config/baseConfig';
+import { BaseConfigKey } from './common/config/baseConfig';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
