@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, CacheModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -14,12 +14,27 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bull';
 import { UserModule } from './user/user.module';
 import { AllExceptionFilter } from './common/filter/exception.filter';
+import { configTypes } from './common/config/configTypes';
+import { MailModule } from './mail/mail.module';
+import * as redisStore from 'cache-manager-redis-store';
+import { MailerModule } from '@nestjs-modules/mailer';
+import mailerConfig from './common/config/mailerConfig';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [baseConfig, databaseConfig],
+      load: [baseConfig, databaseConfig, mailerConfig],
+    }),
+
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      isGlobal: true,
+      useFactory: (configService: ConfigService) => ({
+        store: redisStore,
+        ...configService.get(BaseConfigKey.REDIS),
+      }),
     }),
 
     WinstonModule.forRoot(CustomWinstonLogger),
@@ -27,7 +42,7 @@ import { AllExceptionFilter } from './common/filter/exception.filter';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) =>
-        await configService.get('database'),
+        await configService.get(configTypes.DATABASE),
       inject: [ConfigService],
     }),
 
@@ -46,8 +61,19 @@ import { AllExceptionFilter } from './common/filter/exception.filter';
       inject: [ConfigService],
     }),
 
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const config = await configService.get(configTypes.MAILER);
+        console.log(config);
+        return config;
+      },
+    }),
+
     AuthModule,
     UserModule,
+    MailModule,
   ],
   controllers: [AppController],
 

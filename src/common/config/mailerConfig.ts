@@ -19,7 +19,7 @@ export default registerAs(
       from: process.env.EMAIL_ID,
     },
     template: {
-      dir: Settings.PROJECT_DIR + '/templates',
+      dir: Settings.PROJECT_DIR + '/src/mail/templates',
       adapter: new HandlebarsAdapter(),
       options: {
         strict: true,
