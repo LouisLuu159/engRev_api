@@ -5,14 +5,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configTypes } from 'src/common/config/configTypes';
 import { BullQueues } from 'src/common/constants/bullQueues';
 import { MailService } from './mail.service';
+import { MailProcessor } from './mail.processor';
 
 @Module({
   imports: [
-   
     BullModule.registerQueue({
       name: BullQueues.MAIL,
     }),
   ],
-  providers: [MailService],
+  providers: [MailProcessor, MailService],
+  exports: [MailService],
 })
 export class MailModule {}

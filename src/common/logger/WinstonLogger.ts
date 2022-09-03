@@ -7,7 +7,7 @@ const transports = {
       'logs/Combined_' +
       new Date(Date.now()).toISOString().split('T')[0] +
       '.log',
-    level: 'info',
+    level: 'debug',
   }),
   errorFile: new winston.transports.File({
     filename:

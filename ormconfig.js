@@ -11,7 +11,7 @@ module.exports = [
     synchronize: false,
     logging: true,
     entities: ['dist/**/entities/*.entity.js'],
-    migrations: ['dist/db/migrations/*.js'],
+    migrations: ['dist/src/db/migrations/*.js'],
 
     cli: {
       migrationsDir: 'src/db/migrations',
@@ -28,7 +28,7 @@ module.exports = [
     synchronize: false,
     logging: true,
     entities: ['dist/**/entities/*.entity.js'],
-    migrations: ['dist/db/seeds/*.js'],
+    migrations: ['dist/src/db/seeds/*.js'],
 
     cli: {
       migrationsDir: 'src/db/seeds',

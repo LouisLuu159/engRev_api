@@ -8,26 +8,18 @@ import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-import * as bcrypt from 'bcrypt';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
+import { compareHash, hashString } from 'src/common/utils/authHelper';
 
 @Injectable()
 export class UserService {
   constructor(@InjectRepository(User) private userRepo: Repository<User>) {}
-
-  private async hashString(str: string): Promise<string> {
-    const salt = await bcrypt.genSalt(10, 'a');
-    const hashedStr = await bcrypt.hash(str, salt);
-    return hashedStr;
-  }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const checkEmailExist = await this.getUserByEmail(createUserDto.email);
 
     if (checkEmailExist)
       throw new BadRequestException(ResponseErrors.VALIDATION.EMAIL_EXIST);
-
-    createUserDto.password = await this.hashString(createUserDto.password);
 
     const new_user = this.userRepo.create(createUserDto);
     return this.userRepo.save(new_user);
@@ -44,7 +36,7 @@ export class UserService {
 
   async resetPassword(email: string, new_password: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { email: email } });
-    const new_hashed_password = await this.hashString(new_password);
+    const new_hashed_password = await hashString(new_password);
     await this.userRepo.update(user.id, { password: new_hashed_password });
     return user;
   }
@@ -52,7 +44,7 @@ export class UserService {
   async checkCredential(email: string, password: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { email: email } });
     if (user === undefined) return undefined;
-    const valid = await bcrypt.compare(password, user.password);
+    const valid = await compareHash(password, user.password);
     if (!valid) return undefined;
     return user;
   }

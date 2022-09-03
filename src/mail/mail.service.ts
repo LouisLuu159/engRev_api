@@ -11,13 +11,17 @@ export class MailService {
     private mailQueue: Queue,
   ) {}
 
-  async sendVerificationMail(
-    type: VerificationType,
-    email: string,
-    otp: string,
-  ): Promise<void> {
+  async sendAccountVerificationMail(email: string, otp: string): Promise<void> {
     await this.mailQueue.add(EmailJobs.VERIFICATION, {
-      type: type,
+      type: VerificationType.VERIFY_ACCOUNT,
+      email: email,
+      otp: otp,
+    });
+  }
+
+  async sendResetPasswordMail(email: string, otp: string): Promise<void> {
+    await this.mailQueue.add(EmailJobs.VERIFICATION, {
+      type: VerificationType.RESET_PASSWORD,
       email: email,
       otp: otp,
     });

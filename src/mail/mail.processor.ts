@@ -54,8 +54,9 @@ export class MailProcessor {
     job: Job<{ type: VerificationType; email: string; otp: string }>,
   ): Promise<any> {
     const logMessage = `Sending announcement email to '${job.data.email}'`;
-    this.logger.log(logMessage);
-    this.winstonLogger.log(logMessage);
+    console.log(logMessage);
+    this.logger.debug(logMessage);
+    this.winstonLogger.debug(logMessage);
 
     const name = job.data.email.split('@')[0];
     let subject = '[EngRev] ';

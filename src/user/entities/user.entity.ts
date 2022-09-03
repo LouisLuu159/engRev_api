@@ -15,7 +15,7 @@ export class User {
   @Column({ length: 255 })
   full_name: string;
 
-  @Column({ type: 'int', unsigned: true })
+  @Column({ type: 'int', unsigned: true, nullable: true })
   age?: number;
 
   @Column({ unique: true, length: 350 })

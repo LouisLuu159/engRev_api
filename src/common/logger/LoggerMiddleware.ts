@@ -18,18 +18,25 @@ export class LoggerMiddleware implements NestMiddleware {
       const contentLength = response.get('content-length');
 
       const message = `${method} ${originalUrl} ${statusCode} ${contentLength} - ${userAgent} ${ip}`;
-      console.log(message);
+      const messageObj = {
+        method: method,
+        originalUrl: originalUrl,
+        statusCode: statusCode,
+        contentLength: contentLength,
+        userAgent: userAgent,
+        ip: ip,
+      };
 
       if (statusCode >= 500) {
-        // this.winstonLogger.error(message);
+        this.winstonLogger.error(messageObj);
         return this.logger.error(message);
       }
 
       if (statusCode >= 400) {
-        // this.winstonLogger.warn(message);
+        this.winstonLogger.warn(messageObj);
         return this.logger.warn(message);
       }
-      // this.winstonLogger.log(message);
+      this.winstonLogger.debug(messageObj);
       return this.logger.log(message);
     });
 
