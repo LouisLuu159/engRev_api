@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Put,
   Req,
   Res,
   UnauthorizedException,
@@ -21,15 +22,21 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { AuthService } from './auth.service';
-import { ActivateAccountDto } from './dto/activate-account.dto';
-import { LoginSignUpResponse } from './dto/login-signup-response';
-import { LoginDto } from './dto/login.dto';
+
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
-import { Request } from 'express';
+
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
 import { UserService } from 'src/user/user.service';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  ResetPasswordDto,
+  VerifyCodeDto,
+} from './dto/request.dto';
+import { LoginSignUpResponse } from './dto/response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -56,11 +63,11 @@ export class AuthController {
 
   @Post('activate')
   @HttpCode(HttpStatus.OK)
-  @ApiCreatedResponse({ description: 'Activate Account' })
+  @ApiOkResponse({ description: 'Activate Account' })
   @ApiBadRequestResponse({ description: `Invalid Activate's information` })
-  @ApiBody({ type: ActivateAccountDto })
+  @ApiBody({ type: VerifyCodeDto })
   async activateAccount(
-    @Body() payload: ActivateAccountDto,
+    @Body() payload: VerifyCodeDto,
   ): Promise<LoginSignUpResponse> {
     const new_user = await this.authService.verifyActivatingCode(
       payload.email,
@@ -126,5 +133,44 @@ export class AuthController {
       maxAge: 0,
       sameSite: 'none',
     });
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Forgot Password' })
+  @ApiBadRequestResponse({ description: `Email is invalid` })
+  @ApiBody({ type: ForgotPasswordDto })
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    await this.authService.handleForgotPassword(body.email);
+    return {
+      data: { email: body.email },
+      message: 'Password reset mail is sent',
+    };
+  }
+
+  @Post('verify-forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Verify Forgot Password Code' })
+  @ApiBadRequestResponse({ description: `Email is invalid` })
+  @ApiBody({ type: VerifyCodeDto })
+  async verifyForgotPassword(
+    @Req() request: Request,
+    @Body() body: VerifyCodeDto,
+  ) {
+    const response = await this.authService.verifyForgotPasswordCode(
+      request,
+      body,
+    );
+    return response;
+  }
+
+  @Put('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Verify Forgot Password Code' })
+  @ApiBadRequestResponse({ description: `Email is invalid` })
+  @ApiBody({ type: ResetPasswordDto })
+  async resetPassword(@Req() request: Request, @Body() body: ResetPasswordDto) {
+    const response = await this.authService.handleResetPassword(request, body);
+    return response;
   }
 }

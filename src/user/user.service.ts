@@ -35,6 +35,12 @@ export class UserService {
 
   async resetPassword(email: string, new_password: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { email: email } });
+    const match = await compareHash(new_password, user.password);
+    if (match)
+      throw new BadRequestException(
+        ResponseErrors.VALIDATION.PASSWORD_NOT_CHANGE,
+      );
+
     const new_hashed_password = await hashString(new_password);
     await this.userRepo.update(user.id, { password: new_hashed_password });
     return user;

@@ -4,6 +4,7 @@ import {
   Controller,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Cache } from 'cache-manager';
@@ -13,13 +14,19 @@ import { MailService } from 'src/mail/mail.service';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { User } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
-import { LoginDto } from './dto/login.dto';
+
 import { Request } from 'express';
 import { TokenPayload } from './interfaces/TokenPayload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { BaseConfigKey } from 'src/common/config/baseConfig';
-import { LoginSignUpResponse } from './dto/login-signup-response';
+import {
+  LoginSignUpResponse,
+  ResetPasswordResponseDto,
+} from './dto/response.dto';
+import { NotFoundError } from 'rxjs';
+import { LoginDto, ResetPasswordDto, VerifyCodeDto } from './dto/request.dto';
+import { ForgotPasswordResponseDto } from './dto/response.dto';
 
 interface InactivatedUser {
   email: string;
@@ -27,6 +34,8 @@ interface InactivatedUser {
   password: string;
   full_name: string;
 }
+
+const resetToken = 'reset@@eng_rev123';
 export class AuthService {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -35,6 +44,10 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
+
+  private createOtp(): string {
+    return Math.floor(10000000 + Math.random() * 90000000).toString();
+  }
 
   async signUp(createUserDto: CreateUserDto) {
     const checkEmailExist = await this.userService.getUserByEmail(
@@ -45,7 +58,7 @@ export class AuthService {
       throw new BadRequestException(ResponseErrors.VALIDATION.EMAIL_EXIST);
 
     const email = createUserDto.email;
-    const otp = Math.floor(10000000 + Math.random() * 90000000).toString();
+    const otp = this.createOtp();
     const hashedPassword = await hashString(createUserDto.password);
     const value: InactivatedUser = {
       email: email,
@@ -171,5 +184,72 @@ export class AuthService {
         ResponseErrors.UNAUTHORIZED.EXPIRED_TOKEN,
       );
     }
+  }
+
+  async handleForgotPassword(email: string): Promise<void> {
+    const checkEmailExist = await this.userService.getUserByEmail(email);
+
+    if (checkEmailExist) {
+      const otp = this.createOtp();
+      await this.cacheManager.set(email, otp, { ttl: 1 * 3600 });
+      await this.mailService.sendResetPasswordMail(email, otp);
+    } else throw new NotFoundException(ResponseErrors.NOT_FOUND);
+  }
+
+  async verifyForgotPasswordCode(
+    request: Request,
+    verifyCodeDto: VerifyCodeDto,
+  ): Promise<ForgotPasswordResponseDto> {
+    const { email, otp } = verifyCodeDto;
+    const value = await this.cacheManager.get(email);
+    if (value !== otp)
+      throw new BadRequestException(ResponseErrors.VALIDATION.OTP_NOT_CORRECT);
+
+    await this.cacheManager.del(email);
+    const payload = { email: email };
+    const token = this.jwtService.sign(payload, {
+      secret: resetToken,
+      expiresIn: '15m',
+    });
+
+    request.res.cookie('Authentication', token, {
+      httpOnly: true,
+      maxAge: this.getExpirationTime('15m'),
+      sameSite: 'none',
+    });
+
+    const response: ForgotPasswordResponseDto = {
+      data: { email: email },
+      message: 'Verification code is valid',
+    };
+    return response;
+  }
+
+  async handleResetPassword(
+    request: any,
+    body: ResetPasswordDto,
+  ): Promise<ResetPasswordResponseDto> {
+    const token = request?.cookies?.Authentication;
+    let payload;
+    try {
+      if (token == undefined) throw new Error();
+      payload = this.jwtService.verify(token, {
+        secret: resetToken,
+      });
+    } catch (error) {
+      throw new UnauthorizedException(
+        ResponseErrors.UNAUTHORIZED.EXPIRED_TOKEN,
+      );
+    }
+    const email = payload.email;
+    const updated_user = await this.userService.resetPassword(
+      email,
+      body.password,
+    );
+    const response: ResetPasswordResponseDto = {
+      data: { email: email, id: updated_user.id },
+      message: 'Password is reset',
+    };
+    return response;
   }
 }
