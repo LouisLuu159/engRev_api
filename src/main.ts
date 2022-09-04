@@ -38,6 +38,7 @@ async function bootstrap() {
     .setDescription('EngRev API')
     .setVersion('1.0')
     .addTag('API')
+    .addCookieAuth('Authentication', { type: 'http', in: 'Header', scheme: '' })
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

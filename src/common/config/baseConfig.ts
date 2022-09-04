@@ -26,7 +26,7 @@ export default registerAs('base', () => ({
   },
 
   throttle: {
-    ttl: Number(process.env.THROTTLE_TTL),
-    limit: Number(process.env.THROTTLE_LIMIT),
+    ttl: 60,
+    limit: 10,
   },
 }));

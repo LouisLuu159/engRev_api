@@ -3,9 +3,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserRT } from './user_rt.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -24,6 +26,9 @@ export class User {
   @Column()
   @Exclude({ toPlainOnly: true })
   password: string;
+
+  @OneToMany(() => UserRT, (user_rt) => user_rt.user)
+  user_rts?: UserRT;
 
   @CreateDateColumn()
   created_at?: Date;

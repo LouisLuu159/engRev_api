@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -24,6 +25,9 @@ import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { AuthService } from './auth.service';
 import { ActivateAccountDto } from './dto/activate-account.dto';
 import { LoginSignUpResponse } from './dto/login-signup-response';
+import { LoginDto } from './dto/login.dto';
+import { ResponseErrors } from 'src/common/constants/ResponseErrors';
+import { Request } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -53,7 +57,7 @@ export class AuthController {
   async activateAccount(
     @Body() payload: ActivateAccountDto,
   ): Promise<LoginSignUpResponse> {
-    const new_user = await this.authService.verifyCode(
+    const new_user = await this.authService.verifyActivatingCode(
       payload.email,
       payload.otp,
     );
@@ -61,5 +65,38 @@ export class AuthController {
     response.data = { email: new_user.email, full_name: new_user.full_name };
     response.activated = true;
     return response;
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'User Login' })
+  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+  @ApiBody({ type: LoginDto })
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() request: Request,
+  ): Promise<LoginSignUpResponse> {
+    const response = await this.authService.checkLogin(request, loginDto);
+    return response;
+  }
+
+  @Post('renew-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Renew Access Token' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired RefreshToken' })
+  async renewAccessToken(@Req() req: Request) {
+    const refreshToken = req.cookies!.Refresh;
+    if (refreshToken) {
+      const response = await this.authService.renewAccessToken(
+        req,
+        refreshToken,
+      );
+
+      return response;
+    } else {
+      throw new UnauthorizedException(
+        ResponseErrors.UNAUTHORIZED.EXPIRED_TOKEN,
+      );
+    }
   }
 }

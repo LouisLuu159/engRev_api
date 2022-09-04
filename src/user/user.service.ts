@@ -10,17 +10,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { compareHash, hashString } from 'src/common/utils/authHelper';
+import { UserRT } from './entities/user_rt.entity';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectRepository(User) private userRepo: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(UserRT) private userRTRepo: Repository<UserRT>,
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const checkEmailExist = await this.getUserByEmail(createUserDto.email);
-
-    if (checkEmailExist)
-      throw new BadRequestException(ResponseErrors.VALIDATION.EMAIL_EXIST);
-
     const new_user = this.userRepo.create(createUserDto);
     return this.userRepo.save(new_user);
   }
@@ -55,5 +54,22 @@ export class UserService {
 
   async getUserById(id: string) {
     return this.userRepo.findOne({ where: { id: id } });
+  }
+
+  async addRefreshToken(userId: string, token: string) {
+    const signature = token.split('.').slice(-1)[0];
+    const creating_userRT = await this.userRTRepo.create({
+      userId: userId,
+      rt: signature,
+    });
+    const created_userRT = await this.userRTRepo.save(creating_userRT);
+    return created_userRT;
+  }
+
+  async checkRefreshTokenExists(userId: string, token: string) {
+    const signature = token.split('.').slice(-1)[0];
+    const user_rt = await this.userRTRepo.findOne({ where: { rt: signature } });
+    if (user_rt && user_rt.userId == userId) return true;
+    return false;
   }
 }
