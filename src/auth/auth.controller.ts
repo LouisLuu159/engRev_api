@@ -28,11 +28,16 @@ import { LoginSignUpResponse } from './dto/login-signup-response';
 import { LoginDto } from './dto/login.dto';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { Request } from 'express';
+import { JwtAuthGuard } from './guard/jwt-auth.guard';
+import { UserService } from 'src/user/user.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
 
   @Post('sign-up')
   @HttpCode(HttpStatus.CREATED)
@@ -98,5 +103,28 @@ export class AuthController {
         ResponseErrors.UNAUTHORIZED.EXPIRED_TOKEN,
       );
     }
+  }
+
+  @Post('log-out')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: 'Log out' })
+  @ApiUnauthorizedResponse({ description: 'Invalid authorization' })
+  @ApiForbiddenResponse({ description: 'Forbidden' })
+  async logout(@Req() request) {
+    const refreshToken = request.cookies!.Refresh;
+    await this.userService.deleteRefreshToken(request.user.id, refreshToken);
+    request.res.cookie('Authentication', '', {
+      httpOnly: true,
+      maxAge: 0,
+      sameSite: 'none',
+    });
+
+    request.res.cookie('Refresh', '', {
+      httpOnly: true,
+      maxAge: 0,
+      sameSite: 'none',
+    });
   }
 }

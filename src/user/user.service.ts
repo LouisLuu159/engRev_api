@@ -48,15 +48,15 @@ export class UserService {
     return user;
   }
 
-  async getUserByEmail(email: string) {
+  async getUserByEmail(email: string): Promise<User> {
     return this.userRepo.findOne({ where: { email: email } });
   }
 
-  async getUserById(id: string) {
+  async getUserById(id: string): Promise<User> {
     return this.userRepo.findOne({ where: { id: id } });
   }
 
-  async addRefreshToken(userId: string, token: string) {
+  async addRefreshToken(userId: string, token: string): Promise<UserRT> {
     const signature = token.split('.').slice(-1)[0];
     const creating_userRT = await this.userRTRepo.create({
       userId: userId,
@@ -66,10 +66,18 @@ export class UserService {
     return created_userRT;
   }
 
-  async checkRefreshTokenExists(userId: string, token: string) {
+  async checkRefreshTokenExists(
+    userId: string,
+    token: string,
+  ): Promise<boolean> {
     const signature = token.split('.').slice(-1)[0];
     const user_rt = await this.userRTRepo.findOne({ where: { rt: signature } });
     if (user_rt && user_rt.userId == userId) return true;
     return false;
+  }
+
+  async deleteRefreshToken(userId: string, token: string): Promise<void> {
+    const signature = token.split('.').slice(-1)[0];
+    await this.userRTRepo.delete({ rt: signature, userId: userId });
   }
 }
