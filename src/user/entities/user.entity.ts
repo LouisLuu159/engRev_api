@@ -14,8 +14,8 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
 
-  @Column({ length: 255 })
-  full_name: string;
+  @Column({ length: 255, nullable: true })
+  full_name?: string;
 
   @Column({ type: 'int', unsigned: true, nullable: true })
   age?: number;
@@ -23,7 +23,10 @@ export class User {
   @Column({ unique: true, length: 350 })
   email: string;
 
-  @Column()
+  @Column({ unique: true, length: 128 })
+  username: string;
+
+  @Column({ length: 256 })
   @Exclude({ toPlainOnly: true })
   password: string;
 

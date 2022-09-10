@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
@@ -33,6 +34,7 @@ interface InactivatedUser {
   otp: string;
   password: string;
   full_name: string;
+  username: string;
 }
 
 const resetToken = 'reset@@eng_rev123';
@@ -50,12 +52,27 @@ export class AuthService {
   }
 
   async signUp(createUserDto: CreateUserDto) {
-    const checkEmailExist = await this.userService.getUserByEmail(
+    const checkEmailExistInDb = await this.userService.getUserByEmail(
       createUserDto.email,
     );
+    const checkUsernameExistInDb = await this.userService.getUserByUsername(
+      createUserDto.username,
+    );
 
+    const checkEmailExist =
+      checkEmailExistInDb || (await this.cacheManager.get(createUserDto.email));
+
+    const checkUsernameExist =
+      checkUsernameExistInDb ||
+      (await this.cacheManager.get(createUserDto.username));
+
+    const errorMessages = [];
     if (checkEmailExist)
-      throw new BadRequestException(ResponseErrors.VALIDATION.EMAIL_EXIST);
+      errorMessages.push(ResponseErrors.VALIDATION.EMAIL_EXIST);
+    if (checkUsernameExist)
+      errorMessages.push(ResponseErrors.VALIDATION.USERNAME_EXIST);
+    if (errorMessages.length > 0)
+      throw new UnprocessableEntityException(errorMessages);
 
     const email = createUserDto.email;
     const otp = this.createOtp();
@@ -64,17 +81,27 @@ export class AuthService {
       email: email,
       otp: otp,
       password: hashedPassword,
-      full_name: createUserDto.full_name,
+      username: createUserDto.username,
+      full_name: createUserDto?.full_name || null,
     };
     await this.cacheManager.set(email, value, { ttl: 1 * 3600 });
+    await this.cacheManager.set(value.username, true, {
+      ttl: 1 * 3600,
+    });
     await this.mailService.sendAccountVerificationMail(email, otp);
-    return { email: email, full_name: createUserDto.full_name };
+    const response = {
+      email: email,
+      full_name: createUserDto.full_name,
+      username: createUserDto.username,
+    };
+    return response;
   }
 
   async verifyActivatingCode(email: string, otp: string): Promise<User> {
     const value: InactivatedUser = await this.cacheManager.get(email);
     if (value && value.otp == otp) {
       await this.cacheManager.del(email);
+      await this.cacheManager.del(value.username);
       const { otp, ...createUserDto } = value;
       const new_user = await this.userService.create(createUserDto);
       return new_user;
@@ -115,7 +142,7 @@ export class AuthService {
 
   async checkLogin(request: Request, loginDto: LoginDto) {
     const user = await this.userService.checkCredential(
-      loginDto.email,
+      loginDto.login,
       loginDto.password,
     );
     if (user === undefined)
@@ -150,6 +177,7 @@ export class AuthService {
       email: user.email,
       id: user.id,
       full_name: user.full_name,
+      username: user.username,
     };
     response.authToken = accessToken;
     return response;

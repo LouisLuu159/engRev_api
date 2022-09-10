@@ -6,6 +6,7 @@ import {
   IsInt,
   Min,
   Max,
+  IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -17,11 +18,11 @@ export class UpdateUserDto {
     minLength: 5,
     maxLength: 255,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MinLength(5)
   @MaxLength(255)
-  full_name: string;
+  full_name?: string;
 
   @ApiProperty({
     example: 19,
@@ -30,8 +31,9 @@ export class UpdateUserDto {
     minimum: 1,
     maximum: 200,
   })
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(255)
-  age: number;
+  age?: number;
 }

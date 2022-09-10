@@ -21,6 +21,7 @@ import {
   ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
@@ -50,13 +51,14 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ description: 'User Registration' })
   @ApiBadRequestResponse({ description: `Invalid registration's information` })
+  @ApiUnprocessableEntityResponse({ description: `Duplicated Resource` })
   @ApiBody({ type: CreateUserDto })
   async signUp(
     @Body() createUserDto: CreateUserDto,
   ): Promise<LoginSignUpResponse> {
     const new_user = await this.authService.signUp(createUserDto);
     const response = new LoginSignUpResponse();
-    response.data = { email: new_user.email, full_name: new_user.full_name };
+    response.data = new_user;
     response.activated = false;
     return response;
   }
@@ -74,7 +76,11 @@ export class AuthController {
       payload.otp,
     );
     const response = new LoginSignUpResponse();
-    response.data = { email: new_user.email, full_name: new_user.full_name };
+    response.data = {
+      email: new_user.email,
+      full_name: new_user.full_name,
+      username: new_user.username,
+    };
     response.activated = true;
     return response;
   }

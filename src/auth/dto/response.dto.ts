@@ -3,6 +3,7 @@ export class LoginSignUpResponse {
     id?: string;
     email: string;
     full_name: string;
+    username: string;
   };
   activated?: boolean;
   authToken?: string;

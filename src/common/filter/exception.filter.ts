@@ -30,6 +30,23 @@ export class AllExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       responseBody = exception.getResponse();
       statusCode = exception.getStatus();
+      if (statusCode == 422 || statusCode == 400) {
+        let messages = responseBody.message;
+        if (typeof messages == 'string') messages = [messages];
+
+        const errorDict = {};
+        messages.forEach((msg) => {
+          const field = msg.trim().split(' ')[0];
+          if (errorDict[field]) errorDict[field].push(msg);
+          else errorDict[field] = [msg];
+        });
+
+        const errorResponse = [];
+        Object.keys(errorDict).forEach((key) => {
+          errorResponse.push({ field: key, errors: errorDict[key] });
+        });
+        responseBody = { ...responseBody, message: errorResponse };
+      }
     } else if (exception instanceof QueryFailedError) {
       responseBody = {
         statusCode: statusCode,

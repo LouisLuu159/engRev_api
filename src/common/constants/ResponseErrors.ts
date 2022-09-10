@@ -1,6 +1,7 @@
 export const ResponseErrors = {
   VALIDATION: {
     EMAIL_EXIST: 'email does exist',
+    USERNAME_EXIST: 'username does exist',
     OTP_NOT_CORRECT: 'otp does not correct',
     PASSWORD_NOT_CHANGE: 'Password does not change',
   },

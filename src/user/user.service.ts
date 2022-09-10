@@ -46,8 +46,19 @@ export class UserService {
     return user;
   }
 
-  async checkCredential(email: string, password: string): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { email: email } });
+  async checkCredential(login: string, password: string): Promise<User> {
+    // Email in Login DTO could be an username
+    const isEmail = login.split('@').length > 1;
+    let user;
+    if (isEmail) {
+      // Check by Email
+      const email = login;
+      user = await this.userRepo.findOne({ where: { email: email } });
+    } else {
+      // Check by Username
+      const username = login;
+      user = await this.userRepo.findOne({ where: { username: username } });
+    }
     if (user === undefined) return undefined;
     const valid = await compareHash(password, user.password);
     if (!valid) return undefined;
@@ -56,6 +67,10 @@ export class UserService {
 
   async getUserByEmail(email: string): Promise<User> {
     return this.userRepo.findOne({ where: { email: email } });
+  }
+
+  async getUserByUsername(username: string): Promise<User> {
+    return this.userRepo.findOne({ where: { username: username } });
   }
 
   async getUserById(id: string): Promise<User> {
