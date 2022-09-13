@@ -8,6 +8,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -32,12 +33,16 @@ import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
 import { UserService } from 'src/user/user.service';
 import {
+  EmailDto,
   ForgotPasswordDto,
   LoginDto,
+  ResendEmailDto,
   ResetPasswordDto,
+  UsernameDto,
   VerifyCodeDto,
 } from './dto/request.dto';
 import { LoginSignUpResponse } from './dto/response.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -144,7 +149,7 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'Forgot Password' })
-  @ApiBadRequestResponse({ description: `Email is invalid` })
+  @ApiBadRequestResponse({ description: `Email does not exist` })
   @ApiBody({ type: ForgotPasswordDto })
   async forgotPassword(@Body() body: ForgotPasswordDto) {
     await this.authService.handleForgotPassword(body.email);
@@ -178,5 +183,48 @@ export class AuthController {
   async resetPassword(@Req() request: Request, @Body() body: ResetPasswordDto) {
     const response = await this.authService.handleResetPassword(request, body);
     return response;
+  }
+
+  @Post('check-available-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Check if email is available' })
+  @ApiUnprocessableEntityResponse({ description: `Email is not available` })
+  @ApiBody({ type: EmailDto })
+  async checkEmailExist(@Body() body: EmailDto) {
+    const checkEmailExist = await this.authService.checkEmailExist(body.email);
+    if (checkEmailExist)
+      throw new UnprocessableEntityException(
+        ResponseErrors.VALIDATION.EMAIL_EXIST,
+      );
+    return { message: 'Email is available' };
+  }
+
+  @Post('check-available-username')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Check if username is available' })
+  @ApiUnprocessableEntityResponse({
+    description: `Username is not available`,
+  })
+  @ApiBody({ type: UsernameDto })
+  async checkUsernameExist(@Body() body: UsernameDto) {
+    const checkUsername = await this.authService.checkUsernameExist(
+      body.username,
+    );
+    if (checkUsername)
+      throw new UnprocessableEntityException(
+        ResponseErrors.VALIDATION.USERNAME_EXIST,
+      );
+    return { message: 'Username is available' };
+  }
+
+  @Post('resend-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Resend reset password email' })
+  @ApiUnprocessableEntityResponse({
+    description: `Username is not available`,
+  })
+  @ApiBody({ type: ResendEmailDto })
+  async resendEmail(@Body() body: ResendEmailDto) {
+    await this.authService.resendEmail(body);
   }
 }

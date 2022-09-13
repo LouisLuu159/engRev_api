@@ -26,15 +26,25 @@ import {
   ResetPasswordResponseDto,
 } from './dto/response.dto';
 import { NotFoundError } from 'rxjs';
-import { LoginDto, ResetPasswordDto, VerifyCodeDto } from './dto/request.dto';
+import {
+  LoginDto,
+  ResendEmailDto,
+  ResetPasswordDto,
+  Verification_Types,
+  VerifyCodeDto,
+} from './dto/request.dto';
 import { ForgotPasswordResponseDto } from './dto/response.dto';
 
-interface InactivatedUser {
+interface ActivatingUser {
   email: string;
-  otp: string;
   password: string;
   full_name: string;
   username: string;
+}
+interface VerificationValue {
+  otp: string;
+  activatingUser?: ActivatingUser;
+  type: Verification_Types;
 }
 
 const resetToken = 'reset@@eng_rev123';
@@ -52,19 +62,10 @@ export class AuthService {
   }
 
   async signUp(createUserDto: CreateUserDto) {
-    const checkEmailExistInDb = await this.userService.getUserByEmail(
-      createUserDto.email,
-    );
-    const checkUsernameExistInDb = await this.userService.getUserByUsername(
+    const checkEmailExist = await this.checkEmailExist(createUserDto.email);
+    const checkUsernameExist = await this.checkUsernameExist(
       createUserDto.username,
     );
-
-    const checkEmailExist =
-      checkEmailExistInDb || (await this.cacheManager.get(createUserDto.email));
-
-    const checkUsernameExist =
-      checkUsernameExistInDb ||
-      (await this.cacheManager.get(createUserDto.username));
 
     const errorMessages = [];
     if (checkEmailExist)
@@ -77,18 +78,24 @@ export class AuthService {
     const email = createUserDto.email;
     const otp = this.createOtp();
     const hashedPassword = await hashString(createUserDto.password);
-    const value: InactivatedUser = {
+    const activatingUser: ActivatingUser = {
       email: email,
-      otp: otp,
       password: hashedPassword,
       username: createUserDto.username,
       full_name: createUserDto?.full_name || null,
     };
+    const value: VerificationValue = {
+      otp: otp,
+      activatingUser: activatingUser,
+      type: Verification_Types.ACTIVATE,
+    };
+
     await this.cacheManager.set(email, value, { ttl: 1 * 3600 });
-    await this.cacheManager.set(value.username, true, {
+    await this.cacheManager.set(value.activatingUser.username, true, {
       ttl: 1 * 3600,
     });
     await this.mailService.sendAccountVerificationMail(email, otp);
+
     const response = {
       email: email,
       full_name: createUserDto.full_name,
@@ -98,12 +105,15 @@ export class AuthService {
   }
 
   async verifyActivatingCode(email: string, otp: string): Promise<User> {
-    const value: InactivatedUser = await this.cacheManager.get(email);
-    if (value && value.otp == otp) {
+    const value: VerificationValue = await this.cacheManager.get(email);
+    if (
+      value &&
+      value.otp == otp &&
+      value.type == Verification_Types.ACTIVATE
+    ) {
       await this.cacheManager.del(email);
-      await this.cacheManager.del(value.username);
-      const { otp, ...createUserDto } = value;
-      const new_user = await this.userService.create(createUserDto);
+      await this.cacheManager.del(value.activatingUser.username);
+      const new_user = await this.userService.create(value.activatingUser);
       return new_user;
     } else
       throw new BadRequestException(ResponseErrors.VALIDATION.OTP_NOT_CORRECT);
@@ -219,9 +229,14 @@ export class AuthService {
 
     if (checkEmailExist) {
       const otp = this.createOtp();
-      await this.cacheManager.set(email, otp, { ttl: 1 * 3600 });
+      const value: VerificationValue = {
+        otp: otp,
+        type: Verification_Types.RESET_PASSWORD,
+      };
+      await this.cacheManager.set(email, value, { ttl: 1 * 3600 });
       await this.mailService.sendResetPasswordMail(email, otp);
-    } else throw new NotFoundException(ResponseErrors.NOT_FOUND);
+    } else
+      throw new BadRequestException(ResponseErrors.VALIDATION.EMAIL_NOT_EXIST);
   }
 
   async verifyForgotPasswordCode(
@@ -229,28 +244,32 @@ export class AuthService {
     verifyCodeDto: VerifyCodeDto,
   ): Promise<ForgotPasswordResponseDto> {
     const { email, otp } = verifyCodeDto;
-    const value = await this.cacheManager.get(email);
-    if (value !== otp)
+    const value: VerificationValue = await this.cacheManager.get(email);
+    if (
+      value &&
+      value.otp == otp &&
+      value.type == Verification_Types.RESET_PASSWORD
+    ) {
+      await this.cacheManager.del(email);
+      const payload = { email: email };
+      const token = this.jwtService.sign(payload, {
+        secret: resetToken,
+        expiresIn: '15m',
+      });
+
+      request.res.cookie('Authentication', token, {
+        httpOnly: true,
+        maxAge: this.getExpirationTime('15m'),
+        sameSite: 'none',
+      });
+
+      const response: ForgotPasswordResponseDto = {
+        data: { email: email },
+        message: 'Verification code is valid',
+      };
+      return response;
+    } else
       throw new BadRequestException(ResponseErrors.VALIDATION.OTP_NOT_CORRECT);
-
-    await this.cacheManager.del(email);
-    const payload = { email: email };
-    const token = this.jwtService.sign(payload, {
-      secret: resetToken,
-      expiresIn: '15m',
-    });
-
-    request.res.cookie('Authentication', token, {
-      httpOnly: true,
-      maxAge: this.getExpirationTime('15m'),
-      sameSite: 'none',
-    });
-
-    const response: ForgotPasswordResponseDto = {
-      data: { email: email },
-      message: 'Verification code is valid',
-    };
-    return response;
   }
 
   async handleResetPassword(
@@ -279,5 +298,47 @@ export class AuthService {
       message: 'Password is reset',
     };
     return response;
+  }
+
+  async resendEmail(body: ResendEmailDto) {
+    const value: VerificationValue = await this.cacheManager.get(body.email);
+    const otp = this.createOtp();
+
+    if (body.type == Verification_Types.ACTIVATE) {
+      if (value && value.type == body.type) {
+        await this.cacheManager.del(body.email);
+        const new_value = { ...value, otp: otp };
+
+        await this.cacheManager.set(body.email, new_value, { ttl: 1 * 3600 });
+        await this.cacheManager.set(new_value.activatingUser.username, true, {
+          ttl: 1 * 3600,
+        });
+        await this.mailService.sendAccountVerificationMail(body.email, otp);
+      } else
+        throw new UnprocessableEntityException(
+          ResponseErrors.VALIDATION.EMAIL_NOT_EXIST,
+        );
+    } else {
+      await this.cacheManager.del(body.email);
+      const new_value: VerificationValue = {
+        otp: otp,
+        type: Verification_Types.RESET_PASSWORD,
+      };
+      await this.cacheManager.set(body.email, new_value, { ttl: 1 * 3600 });
+    }
+  }
+
+  async checkEmailExist(email: string) {
+    const checkEmailExistInDb = await this.userService.getUserByEmail(email);
+    const checkEmailInCache = await this.cacheManager.get(email);
+    return Boolean(checkEmailExistInDb) || Boolean(checkEmailInCache);
+  }
+
+  async checkUsernameExist(username: string) {
+    const checkUsernameExistInDb = await this.userService.getUserByUsername(
+      username,
+    );
+    const checkUsernameInCache = await this.cacheManager.get(username);
+    return Boolean(checkUsernameExistInDb) || Boolean(checkUsernameInCache);
   }
 }

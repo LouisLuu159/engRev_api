@@ -20,17 +20,22 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const new_user = this.userRepo.create(createUserDto);
-    return this.userRepo.save(new_user);
+    const creating_user = await this.userRepo.create(createUserDto);
+    const new_user = await this.userRepo.save(creating_user);
+    delete new_user.password;
+    return new_user;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.userRepo.findOne({ where: { id: id } });
+    console.log(user);
     if (user === undefined)
       throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
     const updating_user: User = { ...user, ...updateUserDto };
-    return this.userRepo.save(updating_user);
+    const updated_user = await this.userRepo.save(updating_user);
+    delete updated_user.password;
+    return updated_user;
   }
 
   async resetPassword(email: string, new_password: string): Promise<User> {
@@ -43,6 +48,7 @@ export class UserService {
 
     const new_hashed_password = await hashString(new_password);
     await this.userRepo.update(user.id, { password: new_hashed_password });
+    await this.userRTRepo.delete({ userId: user.id }); //Remove all RefreshToken
     return user;
   }
 

@@ -21,12 +21,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { User } from './entities/user.entity';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get()
+  @Get('info')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()
@@ -37,13 +38,16 @@ export class UserController {
     return user;
   }
 
-  @Patch()
+  @Patch('update')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()
   @ApiOkResponse({ description: `Get User's Information` })
   @ApiBody({ type: UpdateUserDto })
-  async update(@Req() req, @Body() updateUserDto: UpdateUserDto) {
+  async update(
+    @Req() req,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
     const id = req.user.id;
     const user = await this.userService.update(id, updateUserDto);
     return user;

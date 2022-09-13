@@ -9,6 +9,7 @@ export const BaseConfigKey = {
   REFRESH_TOKEN_EXPIRE: 'base.rt_expire',
   REDIS: 'base.redis',
   RATE_LIMIT: 'base.throttle',
+  USER_WEB_URL: 'base.user_web_url',
 };
 
 export default registerAs('base', () => ({
@@ -27,6 +28,8 @@ export default registerAs('base', () => ({
 
   throttle: {
     ttl: 60,
-    limit: 10,
+    limit: 20,
   },
+
+  user_web_url: 'http://localhost:5001',
 }));

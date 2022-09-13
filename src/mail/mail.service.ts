@@ -13,7 +13,7 @@ export class MailService {
 
   async sendAccountVerificationMail(email: string, otp: string): Promise<void> {
     await this.mailQueue.add(EmailJobs.VERIFICATION, {
-      type: VerificationType.VERIFY_ACCOUNT,
+      type: VerificationType.ACTIVATE,
       email: email,
       otp: otp,
     });

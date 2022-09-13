@@ -5,8 +5,14 @@ import {
   IsEmail,
   IsString,
   Length,
+  IsIn,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+  Validate,
 } from 'class-validator';
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PickType } from '@nestjs/swagger';
+import { Injectable } from '@nestjs/common';
 
 export class LoginDto {
   // Email
@@ -34,7 +40,7 @@ export class LoginDto {
   readonly password: string;
 }
 
-export class VerifyCodeDto {
+export class EmailDto {
   // Email
   @ApiProperty({
     example: 'louis123@gmail.com',
@@ -50,7 +56,9 @@ export class VerifyCodeDto {
   @MaxLength(320)
   @IsEmail()
   email: string;
+}
 
+export class VerifyCodeDto extends PickType(EmailDto, ['email'] as const) {
   @ApiProperty({
     example: '12345678',
     description: 'The verification code',
@@ -65,28 +73,26 @@ export class VerifyCodeDto {
   otp: string;
 }
 
-export class ForgotPasswordDto {
-  // Email
-  @ApiProperty({
-    example: 'louis123@gmail.com',
-    description: 'The email of the User',
-    format: 'email',
-    uniqueItems: true,
-    minLength: 5,
-    maxLength: 320,
-  })
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(5)
-  @MaxLength(320)
-  @IsEmail()
-  readonly email: string;
+export class ForgotPasswordDto extends PickType(EmailDto, ['email'] as const) {}
+
+export class ResetPasswordDto extends PickType(LoginDto, [
+  'password',
+] as const) {}
+
+export enum Verification_Types {
+  RESET_PASSWORD = 'RESET_PASSWORD',
+  ACTIVATE = 'ACTIVATE',
 }
 
-export class ResetPasswordDto {
-  // Password
+const RESEND_TYPES = {
+  RESET_PASSWORD: Verification_Types.RESET_PASSWORD,
+  ACTIVATE: Verification_Types.ACTIVATE,
+};
+
+export class ResendEmailDto extends PickType(EmailDto, ['email'] as const) {
+  //Type
   @ApiProperty({
-    example: 'louis789',
+    example: 'RESET_PASSWORD',
     description: 'The password of the User',
     format: 'string',
     minLength: 6,
@@ -94,7 +100,35 @@ export class ResetPasswordDto {
   })
   @IsNotEmpty()
   @IsString()
-  @MinLength(6)
-  @MaxLength(50)
-  readonly password: string;
+  @IsIn(Object.values(RESEND_TYPES))
+  readonly type: string;
+}
+
+@ValidatorConstraint({ name: 'username' })
+@Injectable()
+class CustomUsernameValidation implements ValidatorConstraintInterface {
+  validate(value: string, args: ValidationArguments): boolean {
+    const usernameRegex = /^(\w|\.){5,40}$/g;
+    return usernameRegex.test(value);
+  }
+  defaultMessage(args: ValidationArguments) {
+    return `username must contain only: number, alphabet, hyphens(_)`;
+  }
+}
+
+export class UsernameDto {
+  // Username
+  @ApiProperty({
+    example: 'Louis_Luu123',
+    description: 'Username',
+    format: 'string',
+    minLength: 5,
+    maxLength: 255,
+    required: true,
+  })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(40)
+  @Validate(CustomUsernameValidation)
+  username: string;
 }

@@ -3,10 +3,11 @@ export const EmailJobs = {
 };
 
 export enum VerificationType {
-  VERIFY_ACCOUNT = 'VERIFY_ACCOUNT',
+  ACTIVATE = 'ACTIVATE',
   RESET_PASSWORD = 'RESET_PASSWORD',
 }
 
 export const EmailTemplates = {
-  VERIFICATION: 'verification',
+  ACTIVATION: 'activation',
+  RESET_PASSWORD: 'reset_password',
 };
