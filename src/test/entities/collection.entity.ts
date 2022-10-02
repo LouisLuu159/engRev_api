@@ -9,17 +9,10 @@ import {
 } from 'typeorm';
 import { QuestionDictionary } from '../interfaces/question.interface';
 import { TranscriptDictionary } from '../interfaces/transcript.interface';
-import {
-  PartRangeEnd,
-  PartRangeStart,
-  PartType,
-  Skills,
-  TestType,
-} from '../test.constant';
-import { Test } from './test.entity';
+import { Part } from './part.entity';
 
-@Entity({ name: 'user_rts' })
-export class Part {
+@Entity({ name: 'collections' })
+export class Collection {
   @PrimaryGeneratedColumn('increment')
   id?: string;
 
@@ -37,6 +30,15 @@ export class Part {
 
   @Column({ type: 'json' })
   questions: QuestionDictionary;
+
+  @ManyToOne(() => Part, (part) => part.collections, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  part?: Part;
+
+  @Column()
+  partId?: string;
 
   @CreateDateColumn()
   created_at?: Date;
