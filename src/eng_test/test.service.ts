@@ -8,9 +8,19 @@ import { TranscriptDictionary } from './interfaces/transcript.interface';
 import { Question, QuestionDictionary } from './interfaces/question.interface';
 import { Collection } from './entities/collection.entity';
 import { TestType, parts, Skills, PartType } from './test.constant';
+import { Test } from './entities/test.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Part } from './entities/part.entity';
 
 @Injectable()
 export class TestService {
+  constructor(
+    @InjectRepository(Collection)
+    private collectionRepo: Repository<Collection>,
+    @InjectRepository(Test) private testRepo: Repository<Test>,
+    @InjectRepository(Part) private partRepo: Repository<Part>,
+  ) {}
   async getAnswerDict(answerKeyFile: Express.Multer.File, range: number[]) {
     const rl = createInterface({
       input: Readable.from(answerKeyFile.buffer),
@@ -219,5 +229,28 @@ export class TestService {
       });
     }
     return collections;
+  }
+
+  async createTest(test: Test) {
+    const new_test = await this.testRepo.save(test);
+    let creating_parts = test.parts;
+    creating_parts = creating_parts.map((part) => {
+      return { ...part, testId: new_test.id };
+    });
+    const insert_promises = creating_parts.map(async (part) => {
+      const new_part = await this.partRepo.save(part);
+      const creating_collections = part.collections.map((collection) => {
+        return { ...collection, partId: new_part.id };
+      });
+      await this.collectionRepo
+        .createQueryBuilder()
+        .insert()
+        .into(Collection)
+        .values(creating_collections)
+        .execute();
+    });
+
+    await Promise.all(insert_promises);
+    return { message: 'Create Test Successfully' };
   }
 }

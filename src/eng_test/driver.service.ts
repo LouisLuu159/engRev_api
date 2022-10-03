@@ -23,6 +23,10 @@ export class DriverService {
     return `'${id}' in parents and trashed=false`;
   };
 
+  private getUrl = (fileId) => {
+    return `https://drive.google.com/uc?id=${fileId}&export=download`;
+  };
+
   async getListOfFiles(folderId) {
     const [listSubFiles_response, createPermission_response] =
       await Promise.all([
@@ -38,13 +42,11 @@ export class DriverService {
         }),
       ]);
 
-    const url = 'https://drive.google.com/uc?id=';
-
     const subFilesList = listSubFiles_response.data.files;
     const filesData = subFilesList.map((file) => {
       const data = {
         ...file,
-        url: url + file.id,
+        url: this.getUrl(file.id),
       };
       return data;
     });

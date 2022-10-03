@@ -172,9 +172,12 @@ export class TestController {
       updated_part.collections.push(collection);
       test.parts[partIndex] = updated_part;
     });
-    const dstPath = pathHandler.join(__dirname, 'seed/Test2');
-    const testDataPath = pathHandler.join(dstPath, 'testData.json');
-    await fs.promises.writeFile(testDataPath, JSON.stringify(test), 'utf8');
-    return true;
+
+    const response = await this.testService.createTest(test);
+
+    // const dstPath = pathHandler.join(__dirname, 'seed/Test2');
+    // const testDataPath = pathHandler.join(dstPath, 'testData.json');
+    // await fs.promises.writeFile(testDataPath, JSON.stringify(test), 'utf8');
+    return response;
   }
 }
