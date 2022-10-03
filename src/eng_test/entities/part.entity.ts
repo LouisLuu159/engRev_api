@@ -38,7 +38,7 @@ export class Part {
   testId?: string;
 
   @OneToMany(() => Collection, (collection) => collection.part)
-  collections?: Collection;
+  collections?: Collection[];
 
   @CreateDateColumn()
   created_at?: Date;

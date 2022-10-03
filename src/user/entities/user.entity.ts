@@ -31,7 +31,7 @@ export class User {
   password: string;
 
   @OneToMany(() => UserRT, (user_rt) => user_rt.user)
-  user_rts?: UserRT;
+  user_rts?: UserRT[];
 
   @CreateDateColumn()
   created_at?: Date;

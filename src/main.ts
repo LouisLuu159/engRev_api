@@ -11,23 +11,23 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('v1');
-  const whitelist = ['http://localhost:5001'];
-  app.enableCors({
-    origin: function (origin, callback) {
-      if (whitelist.indexOf(origin) !== -1) {
-        console.log('Allowed cors for:', origin);
-        callback(null, true);
-      } else {
-        console.log('blocked cors for:', origin);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    allowedHeaders:
-      'Authorization,Accept,Origin,DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range',
-    methods: 'GET,PUT,POST,DELETE,OPTIONS',
-    credentials: true,
-    exposedHeaders: ['SET-COOKIE'],
-  });
+  // const whitelist = ['http://localhost:5001'];
+  // app.enableCors({
+  //   origin: function (origin, callback) {
+  //     if (whitelist.indexOf(origin) !== -1) {
+  //       console.log('Allowed cors for:', origin);
+  //       callback(null, true);
+  //     } else {
+  //       console.log('blocked cors for:', origin);
+  //       callback(new Error('Not allowed by CORS'));
+  //     }
+  //   },
+  //   allowedHeaders:
+  //     'Authorization,Accept,Origin,DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range',
+  //   methods: 'GET,PUT,POST,DELETE,OPTIONS',
+  //   credentials: true,
+  //   exposedHeaders: ['SET-COOKIE'],
+  // });
 
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe());

@@ -17,7 +17,7 @@ export class Test {
   id?: string;
 
   @Column()
-  folderId?: string;
+  folderId: string;
 
   @Column()
   description: string;
@@ -26,9 +26,9 @@ export class Test {
   type: TestType;
 
   @OneToMany(() => Part, (part) => part.test)
-  parts?: Part;
+  parts?: Part[];
 
-  @Column()
+  @Column({ nullable: true })
   audioUrl?: string;
 
   @CreateDateColumn()

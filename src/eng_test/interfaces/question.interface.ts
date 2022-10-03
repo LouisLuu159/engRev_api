@@ -2,7 +2,7 @@ export interface QuestionDictionary {
   [questionNo: string]: Question;
 }
 
-interface Question {
+export interface Question {
   questionNo: string;
   content: string;
   answer: string;
