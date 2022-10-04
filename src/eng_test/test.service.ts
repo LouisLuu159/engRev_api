@@ -118,6 +118,24 @@ export class TestService {
     let currentQuestionNo = 0;
     let collectionsRange = [];
 
+    const part1Range = [parts.PART1.range_start, parts.PART1.range_end];
+    const part2Range = [parts.PART2.range_start, parts.PART2.range_end];
+
+    if (JSON.stringify(range) == JSON.stringify(part1Range)) {
+      file = null;
+      collectionsRange.push(part1Range[0] + '-' + part1Range[1]);
+    }
+
+    if (JSON.stringify(range) == JSON.stringify(part2Range)) {
+      file = null;
+      collectionsRange.push(part2Range[0] + '-' + part2Range[1]);
+    }
+
+    if (range[1] >= 100) {
+      collectionsRange.push(part1Range[0] + '-' + part1Range[1]);
+      collectionsRange.push(part2Range[0] + '-' + part2Range[1]);
+    }
+
     if (file) {
       const rl = createInterface({
         input: Readable.from(file.buffer),
@@ -170,24 +188,6 @@ export class TestService {
           `questionFile doesn't contain question No ${i}`,
         );
       }
-    }
-
-    if (range[0] >= 1 && range[0] < 100) {
-      // Exist Listening part
-
-      let ranges = [];
-      let part_ranges = Object.values(parts).map((part) => [
-        part.range_start,
-        part.range_end,
-      ]);
-      part_ranges.forEach((part_range) => {
-        const start = part_range[0];
-        const end = part_range[1];
-        // if range contain part_range then push part_range to ranges
-        if (range[0] <= start && end <= range[1])
-          ranges.push(start + '-' + end);
-      });
-      collectionsRange = ranges;
     }
 
     let collections: Collection[] = [];
@@ -252,5 +252,84 @@ export class TestService {
 
     await Promise.all(insert_promises);
     return { message: 'Create Test Successfully' };
+  }
+
+  async getWholeTest(testId: string, skill: Skills) {
+    let test: Test;
+    if (skill) {
+      const result = await this.testRepo
+        .createQueryBuilder('test')
+        .leftJoinAndSelect('test.parts', 'part')
+        .leftJoinAndSelect('part.collections', 'collection')
+        .where('test.id = :testId', { testId })
+        .andWhere('part.skill = :skill', { skill })
+        .getMany();
+      test = result[0];
+    } else {
+      const result = await this.testRepo
+        .createQueryBuilder('test')
+        .leftJoinAndSelect('test.parts', 'part')
+        .leftJoinAndSelect('part.collections', 'collection')
+        .where('test.id = :testId', { testId })
+        .getMany();
+      test = result[0];
+    }
+
+    const filtered_test = test;
+    filtered_test.parts = test.parts.map((part) => {
+      part.collections = part.collections.map((collection) => {
+        const { transcript, ...filtered_collection } = collection;
+        const filtered_questions = {};
+        Object.keys(collection.questions).forEach((key) => {
+          const { answer, ...filtered_question } = collection.questions[key];
+          filtered_questions[key] = filtered_question;
+        });
+        filtered_collection.questions = filtered_questions;
+        return filtered_collection;
+      });
+      return part;
+    });
+    return filtered_test;
+  }
+
+  async deleteTest(testId: string) {
+    await this.testRepo.delete({ id: testId });
+    return { message: 'Delete Test Successfully' };
+  }
+
+  async getTest(testId) {
+    const test = await this.testRepo.findOne({
+      where: { id: testId },
+      join: {
+        alias: 'test',
+        leftJoinAndSelect: {
+          part: 'test.parts',
+        },
+      },
+    });
+    return test;
+  }
+
+  async getPart(partId: string) {
+    const part = await this.partRepo.findOne({
+      where: { id: partId },
+      join: {
+        alias: 'part',
+        leftJoinAndSelect: {
+          collection: 'part.collections',
+        },
+      },
+    });
+    part.collections = part.collections.map((collection) => {
+      const { transcript, ...filtered_collection } = collection;
+      const filtered_questions = {};
+      Object.keys(collection.questions).forEach((key) => {
+        const { answer, ...filtered_question } = collection.questions[key];
+        filtered_questions[key] = filtered_question;
+      });
+      filtered_collection.questions = filtered_questions;
+      return filtered_collection;
+    });
+    return part;
   }
 }

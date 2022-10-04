@@ -5,7 +5,7 @@ export interface QuestionDictionary {
 export interface Question {
   questionNo: string;
   content: string;
-  answer: string;
+  answer?: string;
   options: OptionDictionary;
 }
 

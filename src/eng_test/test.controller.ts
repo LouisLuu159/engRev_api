@@ -25,6 +25,7 @@ import {
   ApiConsumes,
   ApiParam,
   ApiQuery,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import { AnyFilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { TestType, parts, Skills, PartType } from './test.constant';
@@ -34,6 +35,7 @@ import { UploadTestBodyDto } from './dto/uploadTest.dto';
 import { Test } from './entities/test.entity';
 import { Part } from './entities/part.entity';
 import { DriverService } from './driver.service';
+import { GetTestQueryDto } from './dto/get-test-query.dto';
 
 @ApiTags('Test')
 @Controller('test')
@@ -179,5 +181,36 @@ export class TestController {
     // const testDataPath = pathHandler.join(dstPath, 'testData.json');
     // await fs.promises.writeFile(testDataPath, JSON.stringify(test), 'utf8');
     return response;
+  }
+
+  @Get('/full/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Get Test Data with collection data` })
+  async getWholeTest(
+    @Param('id') testId: string,
+    @Query() query: GetTestQueryDto,
+  ) {
+    return this.testService.getWholeTest(testId, query.skill);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Delete Test` })
+  async deleteTest(@Param('id') testId: string) {
+    return this.testService.deleteTest(testId);
+  }
+
+  @Get('/part/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Get Part Data` })
+  async getPart(@Param('id') partId: string) {
+    return this.testService.getPart(partId);
+  }
+
+  @Get('/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Get Test Data without collection data` })
+  async getTest(@Param('id') testId: string) {
+    return this.testService.getTest(testId);
   }
 }

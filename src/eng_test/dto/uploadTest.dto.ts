@@ -50,9 +50,9 @@ export class UploadTestBodyDto {
   @ApiProperty({
     type: 'string',
     format: 'binary',
-    required: true,
+    required: false,
   })
-  questionFile: Express.Multer.File;
+  questionFile?: Express.Multer.File;
 
   @ApiProperty({
     type: 'string',
