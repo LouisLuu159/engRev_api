@@ -33,9 +33,8 @@ import * as fs from 'fs';
 import * as pathHandler from 'path';
 import { UploadTestBodyDto } from './dto/uploadTest.dto';
 import { Test } from './entities/test.entity';
-import { Part } from './entities/part.entity';
 import { DriverService } from './driver.service';
-import { GetTestQueryDto, GetTranscriptQueryDto } from './dto/query.dto';
+import { GetTestQueryDto } from './dto/query.dto';
 
 @ApiTags('Test')
 @Controller('test')
