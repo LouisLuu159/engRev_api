@@ -26,7 +26,7 @@ export class Collection {
   images: string[];
 
   @Column({ type: 'json' })
-  transcript?: TranscriptDictionary | string;
+  transcript?: TranscriptDictionary;
 
   @Column({ type: 'json' })
   questions: QuestionDictionary;

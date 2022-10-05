@@ -35,7 +35,7 @@ import { UploadTestBodyDto } from './dto/uploadTest.dto';
 import { Test } from './entities/test.entity';
 import { Part } from './entities/part.entity';
 import { DriverService } from './driver.service';
-import { GetTestQueryDto } from './dto/get-test-query.dto';
+import { GetTestQueryDto, GetTranscriptQueryDto } from './dto/query.dto';
 
 @ApiTags('Test')
 @Controller('test')
@@ -200,17 +200,17 @@ export class TestController {
     return this.testService.deleteTest(testId);
   }
 
-  @Get('/part/:id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: `Get Part Data` })
-  async getPart(@Param('id') partId: string) {
-    return this.testService.getPart(partId);
-  }
-
   @Get('/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get Test Data without collection data` })
   async getTest(@Param('id') testId: string) {
     return this.testService.getTest(testId);
+  }
+
+  @Get(':id/answer')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Get Answer Data` })
+  async getAnswer(@Param('id') testId: string) {
+    return this.testService.getAnswer(testId);
   }
 }

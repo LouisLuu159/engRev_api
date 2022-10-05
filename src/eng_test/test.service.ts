@@ -1,6 +1,4 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateTestDto } from './dto/create-test.dto';
-import { UpdateTestDto } from './dto/update-test.dto';
 import { createInterface } from 'node:readline';
 import { Readable } from 'stream';
 import { once } from 'node:events';
@@ -10,7 +8,7 @@ import { Collection } from './entities/collection.entity';
 import { TestType, parts, Skills, PartType } from './test.constant';
 import { Test } from './entities/test.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindCondition, Repository } from 'typeorm';
 import { Part } from './entities/part.entity';
 
 @Injectable()
@@ -123,15 +121,45 @@ export class TestService {
 
     if (JSON.stringify(range) == JSON.stringify(part1Range)) {
       file = null;
+      for (let i = part1Range[0]; i <= part1Range[1]; i++) {
+        const key = `${i}`;
+        const questionData: Question = {
+          questionNo: key,
+          content: '',
+          answer: '',
+          options: {},
+        };
+        questionDict[key] = questionData;
+      }
       collectionsRange.push(part1Range[0] + '-' + part1Range[1]);
     }
 
     if (JSON.stringify(range) == JSON.stringify(part2Range)) {
       file = null;
+      for (let i = part2Range[0]; i <= part2Range[1]; i++) {
+        const key = `${i}`;
+        const questionData: Question = {
+          questionNo: key,
+          content: '',
+          answer: '',
+          options: {},
+        };
+        questionDict[key] = questionData;
+      }
       collectionsRange.push(part2Range[0] + '-' + part2Range[1]);
     }
 
     if (range[1] >= 100) {
+      for (let i = part1Range[0]; i <= part2Range[1]; i++) {
+        const key = `${i}`;
+        const questionData: Question = {
+          questionNo: key,
+          content: '',
+          answer: '',
+          options: {},
+        };
+        questionDict[key] = questionData;
+      }
       collectionsRange.push(part1Range[0] + '-' + part1Range[1]);
       collectionsRange.push(part2Range[0] + '-' + part2Range[1]);
     }
@@ -308,6 +336,24 @@ export class TestService {
       },
     });
     return test;
+  }
+
+  async getAnswer(testId: string) {
+    const collections = await this.collectionRepo
+      .createQueryBuilder('collection')
+      .leftJoin('collection.part', 'part')
+      .leftJoin('part.test', 'test')
+      .where('test.id = :testId', { testId })
+      .select('collection.questions')
+      .getMany();
+
+    let answerDict = {};
+    collections.forEach((collection) => {
+      Object.values(collection.questions).forEach((question) => {
+        answerDict[question.questionNo] = question.answer;
+      });
+    });
+    return answerDict;
   }
 
   async getPart(partId: string) {
