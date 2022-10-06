@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { createInterface } from 'node:readline';
 import { Readable } from 'stream';
 import { once } from 'node:events';
@@ -10,6 +14,7 @@ import { Test } from './entities/test.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindCondition, Repository } from 'typeorm';
 import { Part } from './entities/part.entity';
+import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 
 @Injectable()
 export class TestService {
@@ -335,6 +340,7 @@ export class TestService {
         },
       },
     });
+    if (!test) throw new NotFoundException(ResponseErrors.NOT_FOUND);
     return test;
   }
 
@@ -346,6 +352,9 @@ export class TestService {
       .where('test.id = :testId', { testId })
       .select('collection.questions')
       .getMany();
+
+    if (collections.length == 0)
+      throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
     let answerDict = {};
     collections.forEach((collection) => {
@@ -377,5 +386,9 @@ export class TestService {
       return filtered_collection;
     });
     return part;
+  }
+
+  async getTestList() {
+    return this.testRepo.find();
   }
 }

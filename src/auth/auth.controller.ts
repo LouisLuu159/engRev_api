@@ -229,6 +229,7 @@ export class AuthController {
   }
 
   @Post('/admin/credential')
+  @HttpCode(HttpStatus.OK)
   async checkCredential(
     @Req() request: Request,
     @Body() body: { username: string; password: string },

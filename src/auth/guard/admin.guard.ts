@@ -11,7 +11,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { TokenPayload } from '../interfaces/TokenPayload.interface';
 
 @Injectable()
-export class RolesGuard extends AuthGuard('jwt') {
+export class AdminGuard extends AuthGuard('jwt') {
   constructor(private readonly reflector: Reflector) {
     super();
   }
@@ -21,6 +21,7 @@ export class RolesGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err, data, info: Error, context: ExecutionContext) {
+    console.log(data);
     if (!data) throw new UnauthorizedException();
     if (data.role !== 'admin' || data.email != process.env.ADMIN_KEY) {
       throw new ForbiddenException('No right to access');

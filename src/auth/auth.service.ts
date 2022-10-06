@@ -349,8 +349,9 @@ export class AuthService {
     request: Request,
   ) {
     const valid = await compareHash(password, process.env.ADMIN_SECRETE);
+    const validCredential = username == process.env.ADMIN_KEY && valid;
 
-    if (!valid) throw new ForbiddenException('No right to access');
+    if (!validCredential) throw new ForbiddenException('No right to access');
 
     const payload = { id: 'admin', email: username, role: 'admin' };
     const token = this.jwtService.sign(payload, {

@@ -17,6 +17,7 @@ import {
   Req,
   Query,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { TestService } from './test.service';
 import {
@@ -35,6 +36,8 @@ import { UploadTestBodyDto } from './dto/uploadTest.dto';
 import { Test } from './entities/test.entity';
 import { DriverService } from './driver.service';
 import { GetTestQueryDto } from './dto/query.dto';
+import { AdminGuard } from 'src/auth/guard/admin.guard';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 @ApiTags('Test')
 @Controller('test')
@@ -45,6 +48,7 @@ export class TestController {
   ) {}
 
   @Post('upload')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(AnyFilesInterceptor())
@@ -183,6 +187,7 @@ export class TestController {
   }
 
   @Get('/full/:id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get Test Data with collection data` })
   async getWholeTest(
@@ -193,6 +198,7 @@ export class TestController {
   }
 
   @Delete(':id')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Delete Test` })
   async deleteTest(@Param('id') testId: string) {
@@ -200,6 +206,7 @@ export class TestController {
   }
 
   @Get('/:id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get Test Data without collection data` })
   async getTest(@Param('id') testId: string) {
@@ -207,9 +214,18 @@ export class TestController {
   }
 
   @Get(':id/answer')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get Answer Data` })
   async getAnswer(@Param('id') testId: string) {
     return this.testService.getAnswer(testId);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Get List of Test` })
+  async getTestList() {
+    return this.testService.getTestList();
   }
 }

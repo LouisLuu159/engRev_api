@@ -5,8 +5,10 @@ import {
   HttpStatus,
   Param,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { GetPartQueryDto } from './dto/query.dto';
 import { PartService } from './part.service';
 
@@ -23,6 +25,7 @@ export class PartController {
   // }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get Answer Data` })
   async getPart(@Param('id') partId: string, @Query() query: GetPartQueryDto) {
