@@ -227,4 +227,17 @@ export class AuthController {
   async resendEmail(@Body() body: ResendEmailDto) {
     await this.authService.resendEmail(body);
   }
+
+  @Post('/admin/credential')
+  @HttpCode(HttpStatus.OK)
+  async checkCredential(
+    @Req() request: Request,
+    @Body() body: { username: string; password: string },
+  ) {
+    return this.authService.checkAdminPermission(
+      body.username,
+      body.password,
+      request,
+    );
+  }
 }

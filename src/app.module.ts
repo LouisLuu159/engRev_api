@@ -18,6 +18,8 @@ import { configTypes } from './common/config/configTypes';
 import { MailModule } from './mail/mail.module';
 import * as redisStore from 'cache-manager-redis-store';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { TestModule } from './eng_test/test.module';
+import { PartModule } from './part/part.module';
 import mailerConfig from './common/config/mailerConfig';
 
 @Module({
@@ -74,6 +76,8 @@ import mailerConfig from './common/config/mailerConfig';
     AuthModule,
     UserModule,
     MailModule,
+    TestModule,
+    PartModule,
   ],
   controllers: [AppController],
 

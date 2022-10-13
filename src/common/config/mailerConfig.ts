@@ -1,7 +1,7 @@
 import { MailerOptions } from '@nestjs-modules/mailer';
 import { registerAs } from '@nestjs/config';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
-import Settings from '../../../settings';
+import Settings from '../../../settings.js';
 
 export default registerAs(
   'mailer',

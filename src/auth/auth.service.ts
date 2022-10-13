@@ -2,6 +2,7 @@ import {
   BadRequestException,
   CACHE_MANAGER,
   Controller,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -10,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
-import { hashString } from 'src/common/utils/authHelper';
+import { compareHash, hashString } from 'src/common/utils/authHelper';
 import { MailService } from 'src/mail/mail.service';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { User } from 'src/user/entities/user.entity';
@@ -340,5 +341,30 @@ export class AuthService {
     );
     const checkUsernameInCache = await this.cacheManager.get(username);
     return Boolean(checkUsernameExistInDb) || Boolean(checkUsernameInCache);
+  }
+
+  async checkAdminPermission(
+    username: string,
+    password: string,
+    request: Request,
+  ) {
+    const valid = await compareHash(password, process.env.ADMIN_SECRETE);
+    const validCredential = username == process.env.ADMIN_KEY && valid;
+
+    if (!validCredential) throw new ForbiddenException('No right to access');
+
+    const payload = { id: 'admin', email: username, role: 'admin' };
+    const token = this.jwtService.sign(payload, {
+      secret: this.configService.get(BaseConfigKey.ACCESS_TOKEN_SECRET),
+      expiresIn: '1h',
+    });
+
+    request.res.cookie('Authentication', token, {
+      httpOnly: true,
+      maxAge: this.getExpirationTime('1h'),
+      sameSite: 'none',
+    });
+
+    return true;
   }
 }
