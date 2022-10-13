@@ -21,7 +21,7 @@ export class AdminGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err, data, info: Error, context: ExecutionContext) {
-    console.log(data);
+    //console.log(data);
     if (!data) throw new UnauthorizedException();
     if (data.role !== 'admin' || data.email != process.env.ADMIN_KEY) {
       throw new ForbiddenException('No right to access');

@@ -124,7 +124,7 @@ export class TestService {
     const part1Range = [parts.PART1.range_start, parts.PART1.range_end];
     const part2Range = [parts.PART2.range_start, parts.PART2.range_end];
 
-    if (JSON.stringify(range) == JSON.stringify(part1Range)) {
+    if (JSON.stringify(range) === JSON.stringify(part1Range)) {
       file = null;
       for (let i = part1Range[0]; i <= part1Range[1]; i++) {
         const key = `${i}`;
@@ -139,7 +139,7 @@ export class TestService {
       collectionsRange.push(part1Range[0] + '-' + part1Range[1]);
     }
 
-    if (JSON.stringify(range) == JSON.stringify(part2Range)) {
+    if (JSON.stringify(range) === JSON.stringify(part2Range)) {
       file = null;
       for (let i = part2Range[0]; i <= part2Range[1]; i++) {
         const key = `${i}`;
@@ -154,7 +154,7 @@ export class TestService {
       collectionsRange.push(part2Range[0] + '-' + part2Range[1]);
     }
 
-    if (range[1] >= 100) {
+    if (range[1] >= 100 && range[0] < 100) {
       for (let i = part1Range[0]; i <= part2Range[1]; i++) {
         const key = `${i}`;
         const questionData: Question = {

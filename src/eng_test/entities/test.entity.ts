@@ -16,6 +16,9 @@ export class Test {
   @PrimaryGeneratedColumn('increment')
   id?: string;
 
+  @Column({ nullable: true })
+  name: string;
+
   @Column()
   folderId: string;
 

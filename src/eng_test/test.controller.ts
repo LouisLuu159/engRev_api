@@ -117,22 +117,25 @@ export class TestController {
     if (transcriptFile)
       transcriptDict = await this.testService.getTranscriptDict(transcriptFile);
 
-    const getCollectionsPromise = await this.testService.getCollections(
+    const getCollectionsPromise = this.testService.getCollections(
       questionFile,
       answerDict,
       transcriptDict,
       range,
     );
-    const getImageData = this.driverService.getListOfFiles(body.folderId);
+    const getImageDataPromise = this.driverService.getListOfFiles(
+      body.folderId,
+    );
 
     const [collections, imagesData] = await Promise.all([
       getCollectionsPromise,
-      getImageData,
+      getImageDataPromise,
     ]);
 
     let test: Test = {
       type: body.testType,
-      description: '',
+      name: body.name,
+      description: body.description || '',
       // folderId: '1Fs689SSiZcTTtK0d8qNsEYJ6BWhxJqia',
       folderId: body.folderId,
       audioUrl: body.audioUrl,

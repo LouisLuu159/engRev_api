@@ -14,6 +14,23 @@ export class UploadTestBodyDto {
   testType: TestType;
 
   @ApiProperty({
+    example: 'Test 1',
+    type: 'string',
+    required: true,
+  })
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({
+    example: 'Description',
+    type: 'string',
+    required: false,
+  })
+  @IsOptional()
+  @MaxLength(255)
+  description?: string;
+
+  @ApiProperty({
     type: 'string',
     enum: Object.values(Skills),
     required: false,
