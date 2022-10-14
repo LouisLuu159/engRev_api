@@ -231,4 +231,12 @@ export class TestController {
   async getTestList() {
     return this.testService.getTestList();
   }
+
+  @Get(':id/transcript')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Get Transcript Data` })
+  async getTranscript(@Param('id') testId: string) {
+    return this.testService.getTranscript(testId);
+  }
 }

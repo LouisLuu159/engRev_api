@@ -312,6 +312,8 @@ export class TestService {
       test = result[0];
     }
 
+    if (!Boolean(test)) throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
     const filtered_test = test;
     filtered_test.parts = test.parts.map((part) => {
       part.collections = part.collections.map((collection) => {
@@ -394,5 +396,26 @@ export class TestService {
 
   async getTestList() {
     return this.testRepo.find();
+  }
+
+  async getTranscript(testId: string) {
+    const collections = await this.collectionRepo
+      .createQueryBuilder('collection')
+      .leftJoin('collection.part', 'part')
+      .leftJoin('part.test', 'test')
+      .where('test.id = :testId', { testId })
+      .select('collection.transcript')
+      .getMany();
+
+    if (collections.length == 0)
+      throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    let transcriptDict = {};
+    collections.forEach((collection) => {
+      Object.keys(collection.transcript).forEach((questionNo) => {
+        transcriptDict[questionNo] = collection.transcript[questionNo];
+      });
+    });
+    return transcriptDict;
   }
 }
