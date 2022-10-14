@@ -270,20 +270,24 @@ export class TestService {
     creating_parts = creating_parts.map((part) => {
       return { ...part, testId: new_test.id };
     });
+
+    const creating_collections: Collection[] = [];
+
     const insert_promises = creating_parts.map(async (part) => {
       const new_part = await this.partRepo.save(part);
-      const creating_collections = part.collections.map((collection) => {
-        return { ...collection, partId: new_part.id };
+      part.collections.forEach((collection) => {
+        const new_collection = { ...collection, partId: new_part.id };
+        creating_collections.push(new_collection);
       });
-      await this.collectionRepo
-        .createQueryBuilder()
-        .insert()
-        .into(Collection)
-        .values(creating_collections)
-        .execute();
     });
 
     await Promise.all(insert_promises);
+    await this.collectionRepo
+      .createQueryBuilder()
+      .insert()
+      .into(Collection)
+      .values(creating_collections)
+      .execute();
     return { message: 'Create Test Successfully' };
   }
 
