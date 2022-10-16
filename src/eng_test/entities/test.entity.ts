@@ -34,6 +34,12 @@ export class Test {
   @Column({ nullable: true })
   audioUrl?: string;
 
+  @Column({ nullable: true })
+  totalQuestions?: number;
+
+  @Column({ nullable: true })
+  duration?: number; //in seconds
+
   @CreateDateColumn()
   created_at?: Date;
 

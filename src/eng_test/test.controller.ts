@@ -140,6 +140,8 @@ export class TestController {
       folderId: body.folderId,
       audioUrl: body.audioUrl,
       parts: [],
+      duration: body.duration,
+      totalQuestions: 0,
     };
 
     if (test.type === TestType.FULL_TEST) {
@@ -170,6 +172,7 @@ export class TestController {
     });
 
     collections.forEach((collection) => {
+      test.totalQuestions += Object.keys(collection.questions).length;
       const partIndex = test.parts.findIndex(
         (part) =>
           part.range_start <= collection.range_start &&

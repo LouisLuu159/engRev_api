@@ -172,7 +172,6 @@ export class AuthService {
       maxAge: this.getExpirationTime(
         this.configService.get(BaseConfigKey.ACCESS_TOKEN_EXPIRE),
       ),
-      sameSite: 'none',
     });
 
     request.res.cookie('Refresh', refreshToken, {
@@ -180,7 +179,6 @@ export class AuthService {
       maxAge: this.getExpirationTime(
         this.configService.get(BaseConfigKey.REFRESH_TOKEN_EXPIRE),
       ),
-      sameSite: 'none',
     });
 
     const response = new LoginSignUpResponse();
@@ -214,7 +212,6 @@ export class AuthService {
         maxAge: this.getExpirationTime(
           this.configService.get(BaseConfigKey.ACCESS_TOKEN_EXPIRE),
         ),
-        sameSite: 'none',
       });
 
       return { authToken: new_at };
@@ -261,7 +258,6 @@ export class AuthService {
       request.res.cookie('Authentication', token, {
         httpOnly: true,
         maxAge: this.getExpirationTime('15m'),
-        sameSite: 'none',
       });
 
       const response: ForgotPasswordResponseDto = {
@@ -356,13 +352,12 @@ export class AuthService {
     const payload = { id: 'admin', email: username, role: 'admin' };
     const token = this.jwtService.sign(payload, {
       secret: this.configService.get(BaseConfigKey.ACCESS_TOKEN_SECRET),
-      expiresIn: '1h',
+      expiresIn: '3h',
     });
 
     request.res.cookie('Authentication', token, {
       httpOnly: true,
-      maxAge: this.getExpirationTime('1h'),
-      sameSite: 'none',
+      maxAge: this.getExpirationTime('3h'),
     });
 
     return true;
