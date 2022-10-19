@@ -216,6 +216,10 @@ export class AuthService {
 
       return { authToken: new_at };
     } catch (error) {
+      request.res.cookie('Refresh', '', {
+        httpOnly: true,
+        maxAge: 0,
+      });
       throw new UnauthorizedException(
         ResponseErrors.UNAUTHORIZED.EXPIRED_TOKEN,
       );
