@@ -136,13 +136,11 @@ export class AuthController {
     request.res.cookie('Authentication', '', {
       httpOnly: true,
       maxAge: 0,
-      sameSite: 'none',
     });
 
     request.res.cookie('Refresh', '', {
       httpOnly: true,
       maxAge: 0,
-      sameSite: 'none',
     });
   }
 

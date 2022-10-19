@@ -20,6 +20,7 @@ import * as redisStore from 'cache-manager-redis-store';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { TestModule } from './eng_test/test.module';
 import { PartModule } from './part/part.module';
+import { HistoryModule } from './history/history.module';
 import mailerConfig from './common/config/mailerConfig';
 
 @Module({
@@ -78,6 +79,7 @@ import mailerConfig from './common/config/mailerConfig';
     MailModule,
     TestModule,
     PartModule,
+    HistoryModule,
   ],
   controllers: [AppController],
 

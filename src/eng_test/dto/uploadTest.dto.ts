@@ -1,6 +1,14 @@
-import { IsNotEmpty, IsIn, IsOptional, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsIn,
+  IsOptional,
+  MaxLength,
+  IsNumber,
+  IsNumberString,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { PartType, Skills, TestType } from '../test.constant';
+import { Transform } from 'class-transformer';
 
 export class UploadTestBodyDto {
   @ApiProperty({
@@ -20,6 +28,15 @@ export class UploadTestBodyDto {
   })
   @IsNotEmpty()
   name: string;
+
+  @ApiProperty({
+    example: '7200',
+    type: 'number',
+    required: true,
+  })
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  duration: number;
 
   @ApiProperty({
     example: 'Description',

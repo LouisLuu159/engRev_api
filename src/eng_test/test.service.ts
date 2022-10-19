@@ -270,20 +270,24 @@ export class TestService {
     creating_parts = creating_parts.map((part) => {
       return { ...part, testId: new_test.id };
     });
+
+    const creating_collections: Collection[] = [];
+
     const insert_promises = creating_parts.map(async (part) => {
       const new_part = await this.partRepo.save(part);
-      const creating_collections = part.collections.map((collection) => {
-        return { ...collection, partId: new_part.id };
+      part.collections.forEach((collection) => {
+        const new_collection = { ...collection, partId: new_part.id };
+        creating_collections.push(new_collection);
       });
-      await this.collectionRepo
-        .createQueryBuilder()
-        .insert()
-        .into(Collection)
-        .values(creating_collections)
-        .execute();
     });
 
     await Promise.all(insert_promises);
+    await this.collectionRepo
+      .createQueryBuilder()
+      .insert()
+      .into(Collection)
+      .values(creating_collections)
+      .execute();
     return { message: 'Create Test Successfully' };
   }
 
@@ -307,6 +311,8 @@ export class TestService {
         .getMany();
       test = result[0];
     }
+
+    if (!Boolean(test)) throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
     const filtered_test = test;
     filtered_test.parts = test.parts.map((part) => {
@@ -390,5 +396,26 @@ export class TestService {
 
   async getTestList() {
     return this.testRepo.find();
+  }
+
+  async getTranscript(testId: string) {
+    const collections = await this.collectionRepo
+      .createQueryBuilder('collection')
+      .leftJoin('collection.part', 'part')
+      .leftJoin('part.test', 'test')
+      .where('test.id = :testId', { testId })
+      .select('collection.transcript')
+      .getMany();
+
+    if (collections.length == 0)
+      throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    let transcriptDict = {};
+    collections.forEach((collection) => {
+      Object.keys(collection.transcript).forEach((questionNo) => {
+        transcriptDict[questionNo] = collection.transcript[questionNo];
+      });
+    });
+    return transcriptDict;
   }
 }
