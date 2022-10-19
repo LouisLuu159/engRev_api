@@ -1,13 +1,18 @@
 import { Exclude } from 'class-transformer';
+import { UserHistory } from 'src/history/entities/history.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserConfig } from './user_config.entity';
 import { UserRT } from './user_rt.entity';
+import { UserStatus } from './user_status.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -32,6 +37,17 @@ export class User {
 
   @OneToMany(() => UserRT, (user_rt) => user_rt.user)
   user_rts?: UserRT[];
+
+  @OneToOne(() => UserStatus)
+  @JoinColumn()
+  status?: UserStatus;
+
+  @OneToOne(() => UserConfig)
+  @JoinColumn()
+  config?: UserConfig;
+
+  @OneToMany(() => UserHistory, (history) => history.user)
+  history?: UserHistory[];
 
   @CreateDateColumn()
   created_at?: Date;

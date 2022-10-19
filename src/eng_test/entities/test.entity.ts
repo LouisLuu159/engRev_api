@@ -1,4 +1,5 @@
 import { Exclude } from 'class-transformer';
+import { UserHistory } from 'src/history/entities/history.entity';
 import {
   Column,
   CreateDateColumn,
@@ -39,6 +40,9 @@ export class Test {
 
   @Column({ nullable: true })
   duration?: number; //in seconds
+
+  @OneToMany(() => UserHistory, (history) => history.test)
+  history?: UserHistory[];
 
   @CreateDateColumn()
   created_at?: Date;
