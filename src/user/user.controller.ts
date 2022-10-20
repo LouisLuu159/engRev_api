@@ -22,10 +22,14 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { User } from './entities/user.entity';
+import { HistoryService } from 'src/history/history.service';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly historyService: HistoryService,
+  ) {}
 
   @Get('info')
   @UseGuards(JwtAuthGuard)
@@ -51,5 +55,26 @@ export class UserController {
     const id = req.user.id;
     const user = await this.userService.update(id, updateUserDto);
     return user;
+  }
+
+  @Get('/history')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Get Practice History` })
+  async listHistory(@Req() req) {
+    const userId = req.user.id;
+    const records = await this.historyService.listHistory(userId);
+    return records;
+  }
+
+  @Get('/history/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Get History Detail` })
+  async getHistoryDetail(@Param('id') id: string) {
+    const detail = await this.historyService.getHistoryDetail(id);
+    return detail;
   }
 }
