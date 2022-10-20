@@ -15,6 +15,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindCondition, Repository } from 'typeorm';
 import { Part } from './entities/part.entity';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
+import { SubmitTestDto } from './dto/submitTest.dto';
+import {
+  AnswerSheet,
+  PartScores,
+} from 'src/history/interface/history.interface';
+import { HistoryDetail } from 'src/history/entities/historyDetail.entity';
+import { UserHistory } from 'src/history/entities/history.entity';
+import { HistoryService } from 'src/history/history.service';
 
 @Injectable()
 export class TestService {
@@ -23,6 +31,7 @@ export class TestService {
     private collectionRepo: Repository<Collection>,
     @InjectRepository(Test) private testRepo: Repository<Test>,
     @InjectRepository(Part) private partRepo: Repository<Part>,
+    private readonly historyService: HistoryService,
   ) {}
   async getAnswerDict(answerKeyFile: Express.Multer.File, range: number[]) {
     const rl = createInterface({
@@ -362,10 +371,14 @@ export class TestService {
     if (collections.length == 0)
       throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
-    let answerDict = {};
+    let answerDict: AnswerSheet = {};
     collections.forEach((collection) => {
       Object.values(collection.questions).forEach((question) => {
-        answerDict[question.questionNo] = question.answer;
+        answerDict[question.questionNo] = {
+          questionAnswer: question.answer,
+          partId: collection.partId,
+          collectionId: collection.id,
+        };
       });
     });
     return answerDict;
@@ -417,5 +430,66 @@ export class TestService {
       });
     });
     return transcriptDict;
+  }
+
+  getPartType = (questionNo: number) => {
+    let partType: string;
+    Object.keys(parts).forEach((key) => {
+      const part = parts[key];
+      if (part.range_start <= questionNo && questionNo <= part.range_end)
+        partType = part.type;
+    });
+    return partType;
+  };
+
+  async submitTest(userId: string, body: SubmitTestDto) {
+    const test = await this.testRepo.findOne({ where: { id: body.testId } });
+    if (!Boolean(test)) throw new BadRequestException('testId does not exist');
+
+    const answer = await this.getAnswer(body.testId);
+    let answer_sheet_history: AnswerSheet = { ...answer };
+
+    let partScores: PartScores = {};
+    const parts = await this.partRepo.find({
+      where: { testId: body.testId },
+    });
+    parts.forEach((part) => {
+      partScores[part.type] = {
+        partId: part.id,
+        score: 0,
+        totalQuestions: part.range_end - part.range_start + 1,
+        skill: part.skill,
+      };
+    });
+
+    let totalScore = 0;
+    Object.keys(answer_sheet_history).forEach((questionNo) => {
+      const answer = body.answer_sheet[questionNo] || '';
+      const testAnswer = answer_sheet_history[questionNo].questionAnswer;
+      answer_sheet_history[questionNo].answer = answer;
+
+      const partType = this.getPartType(Number(questionNo));
+      console.log(Number(questionNo), partType);
+
+      if (answer === testAnswer) {
+        totalScore += 1;
+        partScores[partType].score += 1;
+      }
+    });
+
+    const historyDetail: HistoryDetail = {
+      answer_sheet: answer_sheet_history,
+      partScores: partScores,
+    };
+
+    const historyRecord: UserHistory = {
+      userId: userId,
+      testId: body.testId,
+      score: totalScore,
+      detail: historyDetail,
+    };
+
+    const response = await this.historyService.saveHistory(historyRecord);
+    return response;
   }
 }

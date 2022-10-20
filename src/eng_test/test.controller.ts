@@ -38,6 +38,7 @@ import { DriverService } from './driver.service';
 import { GetTestQueryDto } from './dto/query.dto';
 import { AdminGuard } from 'src/auth/guard/admin.guard';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { SubmitTestDto } from './dto/submitTest.dto';
 
 @ApiTags('Test')
 @Controller('test')
@@ -241,5 +242,14 @@ export class TestController {
   @ApiOkResponse({ description: `Get Transcript Data` })
   async getTranscript(@Param('id') testId: string) {
     return this.testService.getTranscript(testId);
+  }
+
+  @Post('submit')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: `Submit Test` })
+  async submitTest(@Req() req: any, @Body() body: SubmitTestDto) {
+    const userId = req.user.id;
+    return this.testService.submitTest(userId, body);
   }
 }

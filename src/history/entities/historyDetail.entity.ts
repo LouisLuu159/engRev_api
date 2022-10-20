@@ -11,7 +11,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Test } from 'src/eng_test/entities/test.entity';
-import { AnswerSheetHistory, PartScores } from '../interface/history.interface';
+import { AnswerSheet, PartScores } from '../interface/history.interface';
 
 @Entity({ name: 'history_detail' })
 export class HistoryDetail {
@@ -19,7 +19,7 @@ export class HistoryDetail {
   id?: string;
 
   @Column({ type: 'json' })
-  answer_sheet: AnswerSheetHistory;
+  answer_sheet: AnswerSheet;
 
   @Column({ type: 'json' })
   partScores: PartScores;

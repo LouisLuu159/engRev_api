@@ -21,7 +21,17 @@ export enum PartType {
   'PART7M' = 'PART7M',
 }
 
-export const parts = {
+interface PartsDictionary {
+  [partType: string]: {
+    type: PartType;
+    range_start: number;
+    range_end: number;
+    skill: Skills;
+    collections: [];
+  };
+}
+
+export const parts: PartsDictionary = {
   PART1: {
     type: PartType.PART1,
     range_start: 1,
