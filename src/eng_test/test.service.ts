@@ -23,6 +23,7 @@ import {
 import { HistoryDetail } from 'src/history/entities/historyDetail.entity';
 import { UserHistory } from 'src/history/entities/history.entity';
 import { HistoryService } from 'src/history/history.service';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class TestService {
@@ -32,6 +33,7 @@ export class TestService {
     @InjectRepository(Test) private testRepo: Repository<Test>,
     @InjectRepository(Part) private partRepo: Repository<Part>,
     private readonly historyService: HistoryService,
+    private readonly userService: UserService,
   ) {}
   async getAnswerDict(answerKeyFile: Express.Multer.File, range: number[]) {
     const rl = createInterface({
@@ -365,7 +367,7 @@ export class TestService {
       .leftJoin('collection.part', 'part')
       .leftJoin('part.test', 'test')
       .where('test.id = :testId', { testId })
-      .select('collection.questions')
+      .select(['collection.questions', 'collection.id', 'collection.partId'])
       .getMany();
 
     if (collections.length == 0)
@@ -446,13 +448,15 @@ export class TestService {
     const test = await this.testRepo.findOne({ where: { id: body.testId } });
     if (!Boolean(test)) throw new BadRequestException('testId does not exist');
 
-    const answer = await this.getAnswer(body.testId);
-    let answer_sheet_history: AnswerSheet = { ...answer };
+    const [answer, parts] = await Promise.all([
+      this.getAnswer(body.testId),
+      this.partRepo.find({
+        where: { testId: body.testId },
+      }),
+    ]);
 
+    let answer_sheet_history: AnswerSheet = { ...answer };
     let partScores: PartScores = {};
-    const parts = await this.partRepo.find({
-      where: { testId: body.testId },
-    });
     parts.forEach((part) => {
       partScores[part.type] = {
         partId: part.id,
@@ -462,26 +466,28 @@ export class TestService {
       };
     });
 
-    let totalScore = 0;
+    let listeningScore = 0,
+      readingScore = 0;
+
     Object.keys(answer_sheet_history).forEach((questionNo) => {
       const answer = body.answer_sheet[questionNo] || '';
       const testAnswer = answer_sheet_history[questionNo].questionAnswer;
       answer_sheet_history[questionNo].answer = answer;
 
       const partType = this.getPartType(Number(questionNo));
-      console.log(Number(questionNo), partType);
-
       if (answer === testAnswer) {
-        totalScore += 1;
+        if (Number(questionNo) >= 1 && Number(questionNo) <= 100)
+          listeningScore += 1;
+        else readingScore += 1;
         partScores[partType].score += 1;
       }
     });
 
+    let totalScore = listeningScore + readingScore;
     const historyDetail: HistoryDetail = {
       answer_sheet: answer_sheet_history,
       partScores: partScores,
     };
-
     const historyRecord: UserHistory = {
       userId: userId,
       testId: body.testId,
@@ -489,7 +495,44 @@ export class TestService {
       detail: historyDetail,
     };
 
+    if (test.type === TestType.FULL_TEST || test.type === TestType.SKILL_TEST) {
+      let skills: Skills[] = [];
+      if (test.type === TestType.FULL_TEST)
+        skills = [Skills.Listening, Skills.Reading];
+      else skills = [parts[0].skill];
+
+      const promises = skills.map(async (skill) => {
+        const result = await this.historyService.getLatestTestResult(
+          userId,
+          skill,
+        );
+        return result;
+      });
+      const results = await Promise.all(promises);
+
+      let new_listening_score: number, new_reading_score: number;
+      results
+        .filter((result) => result !== null)
+        .forEach((result) => {
+          if (result.skill === Skills.Listening) {
+            new_listening_score = Math.floor(
+              (result.score + listeningScore) / 2,
+            );
+          } else
+            new_reading_score = Math.floor((result.score + readingScore) / 2);
+        });
+
+      if (new_listening_score || new_reading_score) {
+        const statusResponse = await this.userService.updateLearningStatus(
+          userId,
+          new_listening_score,
+          new_reading_score,
+        );
+      }
+    }
+
     const response = await this.historyService.saveHistory(historyRecord);
+
     return response;
   }
 }
