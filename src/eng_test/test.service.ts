@@ -165,7 +165,7 @@ export class TestService {
       collectionsRange.push(part2Range[0] + '-' + part2Range[1]);
     }
 
-    if (range[1] >= 100 && range[0] < 100) {
+    if (range[1] >= 100 && range[0] == 1) {
       for (let i = part1Range[0]; i <= part2Range[1]; i++) {
         const key = `${i}`;
         const questionData: Question = {
@@ -309,6 +309,7 @@ export class TestService {
         .createQueryBuilder('test')
         .leftJoinAndSelect('test.parts', 'part')
         .leftJoinAndSelect('part.collections', 'collection')
+        .orderBy('collection.range_start', 'ASC')
         .where('test.id = :testId', { testId })
         .andWhere('part.skill = :skill', { skill })
         .getMany();
@@ -318,6 +319,7 @@ export class TestService {
         .createQueryBuilder('test')
         .leftJoinAndSelect('test.parts', 'part')
         .leftJoinAndSelect('part.collections', 'collection')
+        .orderBy('collection.range_start', 'ASC')
         .where('test.id = :testId', { testId })
         .getMany();
       test = result[0];

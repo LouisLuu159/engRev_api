@@ -144,6 +144,8 @@ export class TestController {
       duration: body.duration,
       totalQuestions: 0,
     };
+    if (body.skillType) test.skills = body.skillType;
+    if (body.partType) test.partType = body.partType;
 
     if (test.type === TestType.FULL_TEST) {
       //Full Test

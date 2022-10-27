@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateConfigDto, UpdateUserDto } from './dto/update-user.dto';
 import {
   ApiBody,
   ApiCookieAuth,
@@ -23,6 +23,7 @@ import {
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { User } from './entities/user.entity';
 import { HistoryService } from 'src/history/history.service';
+import { UserConfig } from './entities/user_config.entity';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
@@ -46,7 +47,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()
-  @ApiOkResponse({ description: `Get User's Information` })
+  @ApiOkResponse({ description: `Update user info` })
   @ApiBody({ type: UpdateUserDto })
   async update(
     @Req() req,
@@ -55,6 +56,21 @@ export class UserController {
     const id = req.user.id;
     const user = await this.userService.update(id, updateUserDto);
     return user;
+  }
+
+  @Patch('update-config')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Update config` })
+  @ApiBody({ type: UpdateConfigDto })
+  async updateConfig(
+    @Req() req,
+    @Body() updateConfigDto: UpdateConfigDto,
+  ): Promise<UserConfig> {
+    const id = req.user.id;
+    const new_config = await this.userService.updateConfig(id, updateConfigDto);
+    return new_config;
   }
 
   @Get('/history')
