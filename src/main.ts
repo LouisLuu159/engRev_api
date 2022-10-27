@@ -6,11 +6,19 @@ import * as cookieParser from 'cookie-parser';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BaseConfigKey } from './common/config/baseConfig';
+import { join } from 'path';
+import * as fs from 'fs';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('v1');
+  const static_path = join(__dirname, '..', '../public');
+  console.log('path: ', static_path);
+  console.log('exist: ', fs.existsSync(static_path));
+  app.use('/public', express.static(static_path));
+
+  // app.setGlobalPrefix('v1');
   const whitelist = process.env.WHITE_LIST.split(',');
 
   // console.log(whitelist);
