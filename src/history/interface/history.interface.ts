@@ -1,12 +1,19 @@
-import { PartType } from 'src/eng_test/test.constant';
+import { PartType, Skills } from 'src/eng_test/test.constant';
 
-export interface AnswerSheetHistory {
+export interface AnswerSheet {
   [questionNo: string]: {
-    choice: string;
-    answer: string;
+    answer?: string;
+    questionAnswer?: string;
+    collectionId: string;
+    partId: string;
   };
 }
 
 export interface PartScores {
-  [partType: string]: number;
+  [partType: string]: {
+    partId: string;
+    score: number;
+    totalQuestions: number;
+    skill: Skills;
+  };
 }

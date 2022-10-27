@@ -15,6 +15,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindCondition, Repository } from 'typeorm';
 import { Part } from './entities/part.entity';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
+import { SubmitTestDto } from './dto/submitTest.dto';
+import {
+  AnswerSheet,
+  PartScores,
+} from 'src/history/interface/history.interface';
+import { HistoryDetail } from 'src/history/entities/historyDetail.entity';
+import { UserHistory } from 'src/history/entities/history.entity';
+import { HistoryService } from 'src/history/history.service';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class TestService {
@@ -23,6 +32,8 @@ export class TestService {
     private collectionRepo: Repository<Collection>,
     @InjectRepository(Test) private testRepo: Repository<Test>,
     @InjectRepository(Part) private partRepo: Repository<Part>,
+    private readonly historyService: HistoryService,
+    private readonly userService: UserService,
   ) {}
   async getAnswerDict(answerKeyFile: Express.Multer.File, range: number[]) {
     const rl = createInterface({
@@ -154,7 +165,7 @@ export class TestService {
       collectionsRange.push(part2Range[0] + '-' + part2Range[1]);
     }
 
-    if (range[1] >= 100 && range[0] < 100) {
+    if (range[1] >= 100 && range[0] == 1) {
       for (let i = part1Range[0]; i <= part2Range[1]; i++) {
         const key = `${i}`;
         const questionData: Question = {
@@ -298,6 +309,7 @@ export class TestService {
         .createQueryBuilder('test')
         .leftJoinAndSelect('test.parts', 'part')
         .leftJoinAndSelect('part.collections', 'collection')
+        .orderBy('collection.range_start', 'ASC')
         .where('test.id = :testId', { testId })
         .andWhere('part.skill = :skill', { skill })
         .getMany();
@@ -307,6 +319,7 @@ export class TestService {
         .createQueryBuilder('test')
         .leftJoinAndSelect('test.parts', 'part')
         .leftJoinAndSelect('part.collections', 'collection')
+        .orderBy('collection.range_start', 'ASC')
         .where('test.id = :testId', { testId })
         .getMany();
       test = result[0];
@@ -356,16 +369,20 @@ export class TestService {
       .leftJoin('collection.part', 'part')
       .leftJoin('part.test', 'test')
       .where('test.id = :testId', { testId })
-      .select('collection.questions')
+      .select(['collection.questions', 'collection.id', 'collection.partId'])
       .getMany();
 
     if (collections.length == 0)
       throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
-    let answerDict = {};
+    let answerDict: AnswerSheet = {};
     collections.forEach((collection) => {
       Object.values(collection.questions).forEach((question) => {
-        answerDict[question.questionNo] = question.answer;
+        answerDict[question.questionNo] = {
+          questionAnswer: question.answer,
+          partId: collection.partId,
+          collectionId: collection.id,
+        };
       });
     });
     return answerDict;
@@ -417,5 +434,107 @@ export class TestService {
       });
     });
     return transcriptDict;
+  }
+
+  getPartType = (questionNo: number) => {
+    let partType: string;
+    Object.keys(parts).forEach((key) => {
+      const part = parts[key];
+      if (part.range_start <= questionNo && questionNo <= part.range_end)
+        partType = part.type;
+    });
+    return partType;
+  };
+
+  async submitTest(userId: string, body: SubmitTestDto) {
+    const test = await this.testRepo.findOne({ where: { id: body.testId } });
+    if (!Boolean(test)) throw new BadRequestException('testId does not exist');
+
+    const [answer, parts] = await Promise.all([
+      this.getAnswer(body.testId),
+      this.partRepo.find({
+        where: { testId: body.testId },
+      }),
+    ]);
+
+    let answer_sheet_history: AnswerSheet = { ...answer };
+    let partScores: PartScores = {};
+    parts.forEach((part) => {
+      partScores[part.type] = {
+        partId: part.id,
+        score: 0,
+        totalQuestions: part.range_end - part.range_start + 1,
+        skill: part.skill,
+      };
+    });
+
+    let listeningScore = 0,
+      readingScore = 0;
+
+    Object.keys(answer_sheet_history).forEach((questionNo) => {
+      const answer = body.answer_sheet[questionNo] || '';
+      const testAnswer = answer_sheet_history[questionNo].questionAnswer;
+      answer_sheet_history[questionNo].answer = answer;
+
+      const partType = this.getPartType(Number(questionNo));
+      if (answer === testAnswer) {
+        if (Number(questionNo) >= 1 && Number(questionNo) <= 100)
+          listeningScore += 1;
+        else readingScore += 1;
+        partScores[partType].score += 1;
+      }
+    });
+
+    let totalScore = listeningScore + readingScore;
+    const historyDetail: HistoryDetail = {
+      answer_sheet: answer_sheet_history,
+      partScores: partScores,
+    };
+    const historyRecord: UserHistory = {
+      userId: userId,
+      testId: body.testId,
+      score: totalScore,
+      detail: historyDetail,
+    };
+
+    if (test.type === TestType.FULL_TEST || test.type === TestType.SKILL_TEST) {
+      let skills: Skills[] = [];
+      if (test.type === TestType.FULL_TEST)
+        skills = [Skills.Listening, Skills.Reading];
+      else skills = [parts[0].skill];
+
+      const promises = skills.map(async (skill) => {
+        const result = await this.historyService.getLatestTestResult(
+          userId,
+          skill,
+        );
+        return result;
+      });
+      const results = await Promise.all(promises);
+
+      let new_listening_score: number, new_reading_score: number;
+      results
+        .filter((result) => result !== null)
+        .forEach((result) => {
+          if (result.skill === Skills.Listening) {
+            new_listening_score = Math.floor(
+              (result.score + listeningScore) / 2,
+            );
+          } else
+            new_reading_score = Math.floor((result.score + readingScore) / 2);
+        });
+
+      if (new_listening_score || new_reading_score) {
+        const statusResponse = await this.userService.updateLearningStatus(
+          userId,
+          new_listening_score,
+          new_reading_score,
+        );
+      }
+    }
+
+    const response = await this.historyService.saveHistory(historyRecord);
+
+    return response;
   }
 }

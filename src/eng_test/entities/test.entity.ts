@@ -9,7 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { TestType } from '../test.constant';
+import { PartType, Skills, TestType } from '../test.constant';
 import { Part } from './part.entity';
 
 @Entity({ name: 'tests' })
@@ -40,6 +40,12 @@ export class Test {
 
   @Column({ nullable: true })
   duration?: number; //in seconds
+
+  @Column({ nullable: true })
+  skills?: Skills;
+
+  @Column({ nullable: true })
+  partType?: PartType;
 
   @OneToMany(() => UserHistory, (history) => history.test)
   history?: UserHistory[];

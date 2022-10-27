@@ -6,9 +6,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Test } from './entities/test.entity';
 import { Collection } from './entities/collection.entity';
 import { Part } from './entities/part.entity';
+import { HistoryModule } from 'src/history/history.module';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Test, Collection, Part])],
+  imports: [
+    HistoryModule,
+    UserModule,
+    TypeOrmModule.forFeature([Test, Collection, Part]),
+  ],
   controllers: [TestController],
   providers: [TestService, DriverService],
 })

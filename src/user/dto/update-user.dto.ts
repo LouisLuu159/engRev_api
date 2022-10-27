@@ -7,8 +7,14 @@ import {
   Min,
   Max,
   IsOptional,
+  IsNumber,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+  Validate,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Injectable } from '@nestjs/common';
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -36,4 +42,46 @@ export class UpdateUserDto {
   @Min(1)
   @Max(255)
   age?: number;
+}
+
+@ValidatorConstraint({ name: 'time_reminder' })
+@Injectable()
+class TimeReminderValidation implements ValidatorConstraintInterface {
+  validate(value: string, args: ValidationArguments): boolean {
+    const times = value.split(':');
+    if (times.length != 2) return false;
+    const hour = Number(times[0]);
+    const minute = Number(times[1]);
+    const checkHour = hour <= 23 && hour >= 0;
+    const checkMinute = minute <= 59 && minute >= 0;
+    return checkHour && checkMinute;
+  }
+  defaultMessage(args: ValidationArguments) {
+    return `time_reminder is not valid`;
+  }
+}
+
+export class UpdateConfigDto {
+  @ApiProperty({
+    example: 750,
+    description: `Expected goal of user`,
+    format: 'number',
+    minimum: 200,
+    maximum: 990,
+  })
+  @IsNumber()
+  @Min(200)
+  @Max(990)
+  goal?: number;
+
+  @ApiProperty({
+    example: '20:80',
+    description: `Time reminder`,
+    format: 'string',
+    minLength: 5,
+    maxLength: 5,
+  })
+  @IsString()
+  @Validate(TimeReminderValidation)
+  time_reminder?: string;
 }

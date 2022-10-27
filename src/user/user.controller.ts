@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateConfigDto, UpdateUserDto } from './dto/update-user.dto';
 import {
   ApiBody,
   ApiCookieAuth,
@@ -22,10 +22,15 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { User } from './entities/user.entity';
+import { HistoryService } from 'src/history/history.service';
+import { UserConfig } from './entities/user_config.entity';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly historyService: HistoryService,
+  ) {}
 
   @Get('info')
   @UseGuards(JwtAuthGuard)
@@ -42,7 +47,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()
-  @ApiOkResponse({ description: `Get User's Information` })
+  @ApiOkResponse({ description: `Update user info` })
   @ApiBody({ type: UpdateUserDto })
   async update(
     @Req() req,
@@ -51,5 +56,41 @@ export class UserController {
     const id = req.user.id;
     const user = await this.userService.update(id, updateUserDto);
     return user;
+  }
+
+  @Patch('update-config')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Update config` })
+  @ApiBody({ type: UpdateConfigDto })
+  async updateConfig(
+    @Req() req,
+    @Body() updateConfigDto: UpdateConfigDto,
+  ): Promise<UserConfig> {
+    const id = req.user.id;
+    const new_config = await this.userService.updateConfig(id, updateConfigDto);
+    return new_config;
+  }
+
+  @Get('/history')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Get Practice History` })
+  async listHistory(@Req() req) {
+    const userId = req.user.id;
+    const records = await this.historyService.listHistory(userId);
+    return records;
+  }
+
+  @Get('/history/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Get History Detail` })
+  async getHistoryDetail(@Param('id') id: string) {
+    const detail = await this.historyService.getHistoryDetail(id);
+    return detail;
   }
 }

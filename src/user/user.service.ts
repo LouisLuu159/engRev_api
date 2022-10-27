@@ -6,17 +6,23 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateConfigDto, UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { compareHash, hashString } from 'src/common/utils/authHelper';
 import { UserRT } from './entities/user_rt.entity';
+import { UserStatus } from './entities/user_status.entity';
+import { UserConfig } from './entities/user_config.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(UserRT) private userRTRepo: Repository<UserRT>,
+    @InjectRepository(UserStatus)
+    private userStatusRepo: Repository<UserStatus>,
+    @InjectRepository(UserConfig)
+    private userConfigRepo: Repository<UserStatus>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -36,6 +42,24 @@ export class UserService {
     const updated_user = await this.userRepo.save(updating_user);
     delete updated_user.password;
     return updated_user;
+  }
+
+  async updateConfig(userId: string, new_config: UpdateConfigDto) {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      join: {
+        alias: 'users',
+        leftJoinAndSelect: {
+          config: 'users.config',
+        },
+      },
+    });
+    const config = user.config;
+    if (new_config.goal) config.goal = new_config.goal;
+    if (new_config.time_reminder)
+      config.time_reminder = new_config.time_reminder;
+    const updated_config = await this.userConfigRepo.save(config);
+    return updated_config;
   }
 
   async resetPassword(email: string, new_password: string): Promise<User> {
@@ -80,7 +104,17 @@ export class UserService {
   }
 
   async getUserById(id: string): Promise<User> {
-    return this.userRepo.findOne({ where: { id: id } });
+    const user = await this.userRepo.findOne({
+      where: { id: id },
+      join: {
+        alias: 'users',
+        leftJoinAndSelect: {
+          config: 'users.config',
+          status: 'users.status',
+        },
+      },
+    });
+    return user;
   }
 
   async addRefreshToken(userId: string, token: string): Promise<UserRT> {
@@ -106,5 +140,28 @@ export class UserService {
   async deleteRefreshToken(userId: string, token: string): Promise<void> {
     const signature = token.split('.').slice(-1)[0];
     await this.userRTRepo.delete({ rt: signature, userId: userId });
+  }
+
+  async updateLearningStatus(
+    userId: string,
+    newListeningScore: number,
+    newReadingScore: number,
+  ) {
+    const user = await this.getUserById(userId);
+
+    let new_status: UserStatus;
+    if (user.status) new_status = { ...user.status };
+    else new_status = { full_score: 0, listening_score: 0, reading_score: 0 };
+
+    if (newListeningScore) new_status.listening_score = newListeningScore;
+    if (newReadingScore) new_status.reading_score = newReadingScore;
+    new_status.full_score =
+      new_status.reading_score + new_status.listening_score;
+
+    const updated_status = await this.userStatusRepo.save(new_status);
+    const new_user = { ...user };
+    new_user.status = updated_status;
+    const updated_user = await this.userRepo.save(new_user);
+    return updated_status;
   }
 }
