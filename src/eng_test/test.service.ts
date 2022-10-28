@@ -24,6 +24,9 @@ import { HistoryDetail } from 'src/history/entities/historyDetail.entity';
 import { UserHistory } from 'src/history/entities/history.entity';
 import { HistoryService } from 'src/history/history.service';
 import { UserService } from 'src/user/user.service';
+import * as pathHandler from 'path';
+import * as fs from 'fs';
+import Settings from 'settings';
 
 @Injectable()
 export class TestService {
@@ -120,6 +123,24 @@ export class TestService {
 
     await once(rl, 'close');
     return transcriptDict;
+  }
+
+  async getImagesData(folderId: string) {
+    const PROJECT_DIR = Settings.PROJECT_DIR;
+    const path = pathHandler.join(PROJECT_DIR, '/public/images', folderId);
+    console.log('path: ', path);
+    try {
+      const filesPath = await fs.promises.readdir(path);
+      const public_url = process.env.API_URL + `/public/images/${folderId}/`;
+      let images: { name: string; url: string }[] = [];
+      filesPath.forEach((file) => {
+        const imageData = { name: file, url: public_url + file };
+        images.push(imageData);
+      });
+      return images;
+    } catch (error) {
+      throw new BadRequestException('folderId is not correct');
+    }
   }
 
   async getCollections(
