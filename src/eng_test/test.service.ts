@@ -27,6 +27,7 @@ import { UserService } from 'src/user/user.service';
 import * as pathHandler from 'path';
 import * as fs from 'fs';
 import Settings from 'settings';
+import { TransDict } from './dto/response.dto';
 
 @Injectable()
 export class TestService {
@@ -442,18 +443,22 @@ export class TestService {
       .leftJoin('collection.part', 'part')
       .leftJoin('part.test', 'test')
       .where('test.id = :testId', { testId })
-      .select('collection.transcript')
+      .select(['collection.id', 'collection.transcript'])
       .getMany();
 
     if (collections.length == 0)
       throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
-    let transcriptDict = {};
+    let transcriptDict: TransDict = {};
     collections.forEach((collection) => {
       Object.keys(collection.transcript).forEach((questionNo) => {
-        transcriptDict[questionNo] = collection.transcript[questionNo];
+        transcriptDict[questionNo] = {
+          collectionId: collection.id,
+          content: collection.transcript[questionNo],
+        };
       });
     });
+
     return transcriptDict;
   }
 
