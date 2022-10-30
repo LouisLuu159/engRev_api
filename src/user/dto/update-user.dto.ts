@@ -69,6 +69,7 @@ export class UpdateConfigDto {
     minimum: 200,
     maximum: 990,
   })
+  @IsOptional()
   @IsNumber()
   @Min(200)
   @Max(990)
@@ -81,6 +82,7 @@ export class UpdateConfigDto {
     minLength: 5,
     maxLength: 5,
   })
+  @IsOptional()
   @IsString()
   @Validate(TimeReminderValidation)
   time_reminder?: string;

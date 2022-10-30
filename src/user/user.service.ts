@@ -22,7 +22,7 @@ export class UserService {
     @InjectRepository(UserStatus)
     private userStatusRepo: Repository<UserStatus>,
     @InjectRepository(UserConfig)
-    private userConfigRepo: Repository<UserStatus>,
+    private userConfigRepo: Repository<UserConfig>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -54,11 +54,14 @@ export class UserService {
         },
       },
     });
-    const config = user.config;
+    const config = user.config || new UserConfig();
     if (new_config.goal) config.goal = new_config.goal;
     if (new_config.time_reminder)
       config.time_reminder = new_config.time_reminder;
     const updated_config = await this.userConfigRepo.save(config);
+
+    user.config = updated_config;
+    const updated_user = await this.userRepo.save(user);
     return updated_config;
   }
 
