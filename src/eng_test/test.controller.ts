@@ -240,8 +240,8 @@ export class TestController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get List of Test` })
-  async getTestList() {
-    return this.testService.getTestList();
+  async getTestList(@Query() query: GetTestQueryDto) {
+    return this.testService.getTestList(query);
   }
 
   @Get(':id/transcript')

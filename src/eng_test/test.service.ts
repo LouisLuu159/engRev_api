@@ -28,6 +28,7 @@ import * as pathHandler from 'path';
 import * as fs from 'fs';
 import Settings from 'settings';
 import { TransDict } from './dto/response.dto';
+import { GetTestQueryDto } from './dto/query.dto';
 
 @Injectable()
 export class TestService {
@@ -433,8 +434,25 @@ export class TestService {
     return part;
   }
 
-  async getTestList() {
-    return this.testRepo.find();
+  async getTestList(query: GetTestQueryDto) {
+    if (query) {
+      if (query.testType === TestType.FULL_TEST)
+        return this.testRepo.find({ where: { type: query.testType } });
+
+      if (query.testType == TestType.SKILL_TEST && query.skill) {
+        console.log(query.skill);
+        return this.testRepo.find({
+          where: { type: query.testType, skills: query.skill },
+        });
+      }
+
+      if (query.testType == TestType.PART_TRAIN && query.partType)
+        return this.testRepo.find({
+          where: { type: query.testType, partType: query.partType },
+        });
+
+      return this.testRepo.find();
+    } else return this.testRepo.find();
   }
 
   async getTranscript(testId: string) {
