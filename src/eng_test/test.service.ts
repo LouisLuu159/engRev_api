@@ -12,7 +12,7 @@ import { Collection } from './entities/collection.entity';
 import { TestType, parts, Skills, PartType } from './test.constant';
 import { Test } from './entities/test.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindCondition, Repository } from 'typeorm';
+import { FindCondition, FindConditions, Repository } from 'typeorm';
 import { Part } from './entities/part.entity';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { SubmitTestDto } from './dto/submitTest.dto';
@@ -435,24 +435,26 @@ export class TestService {
   }
 
   async getTestList(query: GetTestQueryDto) {
+    let condition: FindConditions<Test> = null;
+
     if (query) {
-      if (query.testType === TestType.FULL_TEST)
-        return this.testRepo.find({ where: { type: query.testType } });
-
-      if (query.testType == TestType.SKILL_TEST && query.skill) {
-        console.log(query.skill);
-        return this.testRepo.find({
-          where: { type: query.testType, skills: query.skill },
-        });
+      if (query.testType === TestType.FULL_TEST) {
+        condition = { type: query.testType };
       }
+      ///
+      else if (query.testType === TestType.SKILL_TEST && query.skill) {
+        condition = { type: query.testType, skills: query.skill };
+      }
+      ///
+      else if (query.testType === TestType.PART_TRAIN && query.partType) {
+        condition = { type: query.testType, partType: query.partType };
+      }
+    }
+    const result = condition
+      ? await this.testRepo.find({ where: condition })
+      : await this.testRepo.find();
 
-      if (query.testType == TestType.PART_TRAIN && query.partType)
-        return this.testRepo.find({
-          where: { type: query.testType, partType: query.partType },
-        });
-
-      return this.testRepo.find();
-    } else return this.testRepo.find();
+    return result;
   }
 
   async getTranscript(testId: string) {

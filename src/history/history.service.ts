@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { GetTestQueryDto } from 'src/eng_test/dto/query.dto';
 import { Skills, TestType } from 'src/eng_test/test.constant';
 import { Repository } from 'typeorm';
 import { UserHistory } from './entities/history.entity';
@@ -43,11 +44,9 @@ export class HistoryService {
     return record;
   }
 
-  async listHistory(userId: string) {
-    const records = await this.userHistoryRepo
+  async listHistory(userId: string, testQuery?: GetTestQueryDto) {
+    const historyQuery = this.userHistoryRepo
       .createQueryBuilder('users_history')
-      .leftJoinAndSelect('users_history.detail', 'history_detail')
-      .where('users_history.userId = :userId', { userId })
       .select([
         'users_history.id',
         'users_history.score',
@@ -55,12 +54,47 @@ export class HistoryService {
         'users_history.testId',
         'users_history.userId',
       ])
-      .addSelect([
-        'history_detail.id',
-        'history_detail.partScores',
-        'history_detail.created_at',
-      ])
-      .getMany();
+      .orderBy('users_history.created_at', 'DESC')
+      .where('users_history.userId = :userId', { userId });
+
+    let records: UserHistory[];
+
+    if (testQuery) {
+      historyQuery.leftJoin('users_history.test', 'test');
+      const { testType, skill, partType } = testQuery;
+
+      if (testType === TestType.FULL_TEST) {
+        historyQuery.andWhere('test.type = :type', { type: testType });
+      }
+      ///
+      else if (testType === TestType.SKILL_TEST && skill) {
+        historyQuery.andWhere('test.type = :type', { type: testType });
+        historyQuery.andWhere('test.skills = :skill', { skill });
+      }
+      ///
+      else if (testType === TestType.PART_TRAIN && partType) {
+        historyQuery.andWhere('test.partType = :partType', { partType });
+      }
+
+      records = await historyQuery.getMany();
+      let tests: { [testId: string]: UserHistory } = {};
+      records.forEach((history) => {
+        if (!Boolean(tests[history.testId])) tests[history.testId] = history;
+      });
+      records = Object.values(tests);
+    }
+
+    ///
+    else {
+      historyQuery
+        .leftJoin('users_history.detail', 'history_detail')
+        .addSelect([
+          'history_detail.id',
+          'history_detail.partScores',
+          'history_detail.created_at',
+        ]);
+      records = await historyQuery.getMany();
+    }
 
     return records;
   }

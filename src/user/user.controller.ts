@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { User } from './entities/user.entity';
 import { HistoryService } from 'src/history/history.service';
 import { UserConfig } from './entities/user_config.entity';
+import { GetTestQueryDto } from 'src/eng_test/dto/query.dto';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
@@ -78,9 +80,9 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()
   @ApiOkResponse({ description: `Get Practice History` })
-  async listHistory(@Req() req) {
+  async listHistory(@Req() req, @Query() query: GetTestQueryDto) {
     const userId = req.user.id;
-    const records = await this.historyService.listHistory(userId);
+    const records = await this.historyService.listHistory(userId, query);
     return records;
   }
 
