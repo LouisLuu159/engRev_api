@@ -206,10 +206,12 @@ export class TestController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get Test Data with collection data` })
   async getWholeTest(
+    @Req() req: any,
     @Param('id') testId: string,
     @Query() query: GetTestQueryDto,
   ) {
-    return this.testService.getWholeTest(testId, query.skill);
+    const userId = req.user.id;
+    return this.testService.getWholeTest(testId, query.skill, userId);
   }
 
   @Delete(':id')

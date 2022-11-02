@@ -325,30 +325,29 @@ export class TestService {
     return { message: 'Create Test Successfully' };
   }
 
-  async getWholeTest(testId: string, skill: Skills) {
+  async getWholeTest(testId: string, skill: Skills, userId: string) {
     let test: Test;
+    const testQuery = this.testRepo
+      .createQueryBuilder('test')
+      .leftJoinAndSelect('test.parts', 'part')
+      .leftJoinAndSelect('part.collections', 'collection')
+      .orderBy('collection.range_start', 'ASC')
+      .where('test.id = :testId', { testId });
     if (skill) {
-      const result = await this.testRepo
-        .createQueryBuilder('test')
-        .leftJoinAndSelect('test.parts', 'part')
-        .leftJoinAndSelect('part.collections', 'collection')
-        .orderBy('collection.range_start', 'ASC')
-        .where('test.id = :testId', { testId })
-        .andWhere('part.skill = :skill', { skill })
-        .getMany();
-      test = result[0];
-    } else {
-      const result = await this.testRepo
-        .createQueryBuilder('test')
-        .leftJoinAndSelect('test.parts', 'part')
-        .leftJoinAndSelect('part.collections', 'collection')
-        .orderBy('collection.range_start', 'ASC')
-        .where('test.id = :testId', { testId })
-        .getMany();
-      test = result[0];
+      testQuery.andWhere('part.skill = :skill', { skill });
+      // test = result[0];
     }
 
+    test = await testQuery.getOne();
     if (!Boolean(test)) throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    if (userId !== 'admin') {
+      let latestResult = await this.historyService.getLatestResultOfTest(
+        userId,
+        testId,
+      );
+      test.history = [latestResult];
+    }
 
     const filtered_test = test;
     filtered_test.parts = test.parts.map((part) => {

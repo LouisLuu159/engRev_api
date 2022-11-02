@@ -137,4 +137,16 @@ export class HistoryService {
       };
     return result;
   }
+
+  async getLatestResultOfTest(userId: string, testId: string) {
+    return this.userHistoryRepo.findOne({
+      where: {
+        testId: testId,
+        userId: userId,
+      },
+      order: {
+        created_at: 'ASC',
+      },
+    });
+  }
 }
