@@ -38,6 +38,7 @@ export class HistoryService {
         alias: 'user_history',
         leftJoinAndSelect: {
           detail: 'user_history.detail',
+          test: 'user_history.test',
         },
       },
     });
