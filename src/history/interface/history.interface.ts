@@ -1,9 +1,12 @@
 import { PartType, Skills } from 'src/eng_test/test.constant';
 
 export interface AnswerSheet {
+  [questionNo: string]: string;
+}
+
+export interface QuestionAnswers {
   [questionNo: string]: {
-    answer?: string;
-    questionAnswer?: string;
+    questionAnswer: string;
     collectionId: string;
     partId: string;
   };

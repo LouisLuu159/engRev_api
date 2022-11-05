@@ -31,9 +31,9 @@ export class HistoryService {
     return record;
   }
 
-  async getHistoryDetail(historyId: string) {
+  async getHistoryDetail(userId: string, historyId: string) {
     const record = await this.userHistoryRepo.findOne({
-      where: { id: historyId },
+      where: { id: historyId, userId: userId },
       join: {
         alias: 'user_history',
         leftJoinAndSelect: {

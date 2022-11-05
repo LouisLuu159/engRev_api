@@ -19,6 +19,7 @@ import { SubmitTestDto } from './dto/submitTest.dto';
 import {
   AnswerSheet,
   PartScores,
+  QuestionAnswers,
 } from 'src/history/interface/history.interface';
 import { HistoryDetail } from 'src/history/entities/historyDetail.entity';
 import { UserHistory } from 'src/history/entities/history.entity';
@@ -397,7 +398,7 @@ export class TestService {
     if (collections.length == 0)
       throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
-    let answerDict: AnswerSheet = {};
+    let answerDict: QuestionAnswers = {};
     collections.forEach((collection) => {
       Object.values(collection.questions).forEach((question) => {
         answerDict[question.questionNo] = {
@@ -495,14 +496,13 @@ export class TestService {
     const test = await this.testRepo.findOne({ where: { id: body.testId } });
     if (!Boolean(test)) throw new BadRequestException('testId does not exist');
 
-    const [answer, parts] = await Promise.all([
+    const [questionAnswers, parts] = await Promise.all([
       this.getAnswer(body.testId),
       this.partRepo.find({
         where: { testId: body.testId },
       }),
     ]);
 
-    let answer_sheet_history: AnswerSheet = { ...answer };
     let partScores: PartScores = {};
     parts.forEach((part) => {
       partScores[part.type] = {
@@ -513,13 +513,16 @@ export class TestService {
       };
     });
 
-    let listeningScore = 0,
-      readingScore = 0;
+    let listeningScore = 0;
+    let readingScore = 0;
 
-    Object.keys(answer_sheet_history).forEach((questionNo) => {
+    let answer_sheet_history: AnswerSheet = {};
+
+    Object.keys(questionAnswers).forEach((questionNo) => {
       const answer = body.answer_sheet[questionNo] || '';
-      const testAnswer = answer_sheet_history[questionNo].questionAnswer;
-      answer_sheet_history[questionNo].answer = answer;
+      const testAnswer = questionAnswers[questionNo].questionAnswer;
+
+      answer_sheet_history[questionNo] = answer;
 
       const partType = this.getPartType(Number(questionNo));
       if (answer === testAnswer) {

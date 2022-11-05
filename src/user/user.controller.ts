@@ -11,6 +11,8 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -26,6 +28,7 @@ import { User } from './entities/user.entity';
 import { HistoryService } from 'src/history/history.service';
 import { UserConfig } from './entities/user_config.entity';
 import { GetTestQueryDto } from 'src/eng_test/dto/query.dto';
+import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
@@ -91,8 +94,11 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()
   @ApiOkResponse({ description: `Get History Detail` })
-  async getHistoryDetail(@Param('id') id: string) {
-    const detail = await this.historyService.getHistoryDetail(id);
+  async getHistoryDetail(@Req() req, @Param('id') id: string) {
+    const userId = req.user.id;
+    const detail = await this.historyService.getHistoryDetail(userId, id);
+
+    if (!detail) throw new NotFoundException(ResponseErrors.NOT_FOUND);
     return detail;
   }
 }
