@@ -104,7 +104,10 @@ export class UserController {
   @ApiOkResponse({ description: `Get Practice History` })
   async listHistory(@Req() req, @Query() query: GetTestQueryDto) {
     const userId = req.user.id;
-    const records = await this.historyService.listHistory(userId, query);
+    let records;
+    if (Object.keys(query).length == 0)
+      records = await this.historyService.listHistory(userId);
+    else records = await this.historyService.listHistory(userId, query);
     return records;
   }
 

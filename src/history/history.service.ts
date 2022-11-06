@@ -88,6 +88,16 @@ export class HistoryService {
     ///
     else {
       historyQuery
+        .leftJoin('users_history.test', 'test')
+        .addSelect([
+          'test.id',
+          'test.name',
+          'test.duration',
+          'test.type',
+          'test.skills',
+          'test.partType',
+          'test.totalQuestions',
+        ])
         .leftJoin('users_history.detail', 'history_detail')
         .addSelect([
           'history_detail.id',
