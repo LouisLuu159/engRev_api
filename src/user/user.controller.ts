@@ -16,7 +16,11 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateConfigDto, UpdateUserDto } from './dto/update-user.dto';
+import {
+  UpdateConfigDto,
+  UpdatePasswordDto,
+  UpdateUserDto,
+} from './dto/update-user.dto';
 import {
   ApiBody,
   ApiCookieAuth,
@@ -60,6 +64,21 @@ export class UserController {
   ): Promise<User> {
     const id = req.user.id;
     const user = await this.userService.update(id, updateUserDto);
+    return user;
+  }
+
+  @Patch('update/password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Update user account's password` })
+  @ApiBody({ type: UpdatePasswordDto })
+  async updatePassword(
+    @Req() req,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ): Promise<User> {
+    const id = req.user.id;
+    const user = await this.userService.updatePassword(id, updatePasswordDto);
     return user;
   }
 

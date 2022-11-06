@@ -13,8 +13,9 @@ import {
   ValidationArguments,
   Validate,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
 import { Injectable } from '@nestjs/common';
+import { CreateUserDto } from './create-user.dto';
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -86,4 +87,47 @@ export class UpdateConfigDto {
   @IsString()
   @Validate(TimeReminderValidation)
   time_reminder?: string;
+}
+
+@ValidatorConstraint({ name: 'password' })
+@Injectable()
+class CustomPasswordValidation implements ValidatorConstraintInterface {
+  validate(value: string, args: ValidationArguments): boolean {
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,50}$/g;
+    return passwordRegex.test(value);
+  }
+  defaultMessage(args: ValidationArguments) {
+    return `password must include : at least 1 UPPERCASE (A-Z), 1 lowercase (a-z), 1 number (0-9), 1 special character(!@#$%^&*)`;
+  }
+}
+
+export class UpdatePasswordDto {
+  // Current Password
+  @ApiProperty({
+    example: '@Louis789',
+    description: 'The current password of the User',
+    format: 'string',
+    maxLength: 50,
+  })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(50)
+  current_password: string;
+
+  // New Password
+  @ApiProperty({
+    example: '@Louis789',
+    description: `User's new password`,
+    format: 'string',
+    minLength: 6,
+    maxLength: 50,
+    required: true,
+  })
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(6)
+  @MaxLength(50)
+  @Validate(CustomPasswordValidation)
+  new_password: string;
 }
