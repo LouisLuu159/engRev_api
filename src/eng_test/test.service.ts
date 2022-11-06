@@ -12,18 +12,24 @@ import { Collection } from './entities/collection.entity';
 import { TestType, parts, Skills, PartType } from './test.constant';
 import { Test } from './entities/test.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindCondition, Repository } from 'typeorm';
+import { FindCondition, FindConditions, Repository } from 'typeorm';
 import { Part } from './entities/part.entity';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { SubmitTestDto } from './dto/submitTest.dto';
 import {
   AnswerSheet,
   PartScores,
+  QuestionAnswers,
 } from 'src/history/interface/history.interface';
 import { HistoryDetail } from 'src/history/entities/historyDetail.entity';
 import { UserHistory } from 'src/history/entities/history.entity';
 import { HistoryService } from 'src/history/history.service';
 import { UserService } from 'src/user/user.service';
+import * as pathHandler from 'path';
+import * as fs from 'fs';
+import Settings from 'settings';
+import { TransDict } from './dto/response.dto';
+import { GetTestQueryDto } from './dto/query.dto';
 
 @Injectable()
 export class TestService {
@@ -120,6 +126,24 @@ export class TestService {
 
     await once(rl, 'close');
     return transcriptDict;
+  }
+
+  async getImagesData(folderId: string) {
+    const PROJECT_DIR = Settings.PROJECT_DIR;
+    const path = pathHandler.join(PROJECT_DIR, '/public/images', folderId);
+    console.log('path: ', path);
+    try {
+      const filesPath = await fs.promises.readdir(path);
+      const public_url = process.env.API_URL + `/public/images/${folderId}/`;
+      let images: { name: string; url: string }[] = [];
+      filesPath.forEach((file) => {
+        const imageData = { name: file, url: public_url + file };
+        images.push(imageData);
+      });
+      return images;
+    } catch (error) {
+      throw new BadRequestException('folderId is not correct');
+    }
   }
 
   async getCollections(
@@ -302,30 +326,29 @@ export class TestService {
     return { message: 'Create Test Successfully' };
   }
 
-  async getWholeTest(testId: string, skill: Skills) {
+  async getWholeTest(testId: string, skill: Skills, userId: string) {
     let test: Test;
+    const testQuery = this.testRepo
+      .createQueryBuilder('test')
+      .leftJoinAndSelect('test.parts', 'part')
+      .leftJoinAndSelect('part.collections', 'collection')
+      .orderBy('collection.range_start', 'ASC')
+      .where('test.id = :testId', { testId });
     if (skill) {
-      const result = await this.testRepo
-        .createQueryBuilder('test')
-        .leftJoinAndSelect('test.parts', 'part')
-        .leftJoinAndSelect('part.collections', 'collection')
-        .orderBy('collection.range_start', 'ASC')
-        .where('test.id = :testId', { testId })
-        .andWhere('part.skill = :skill', { skill })
-        .getMany();
-      test = result[0];
-    } else {
-      const result = await this.testRepo
-        .createQueryBuilder('test')
-        .leftJoinAndSelect('test.parts', 'part')
-        .leftJoinAndSelect('part.collections', 'collection')
-        .orderBy('collection.range_start', 'ASC')
-        .where('test.id = :testId', { testId })
-        .getMany();
-      test = result[0];
+      testQuery.andWhere('part.skill = :skill', { skill });
+      // test = result[0];
     }
 
+    test = await testQuery.getOne();
     if (!Boolean(test)) throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    if (userId !== 'admin') {
+      let latestResult = await this.historyService.getLatestResultOfTest(
+        userId,
+        testId,
+      );
+      test.history = [latestResult];
+    }
 
     const filtered_test = test;
     filtered_test.parts = test.parts.map((part) => {
@@ -375,7 +398,7 @@ export class TestService {
     if (collections.length == 0)
       throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
-    let answerDict: AnswerSheet = {};
+    let answerDict: QuestionAnswers = {};
     collections.forEach((collection) => {
       Object.values(collection.questions).forEach((question) => {
         answerDict[question.questionNo] = {
@@ -411,8 +434,27 @@ export class TestService {
     return part;
   }
 
-  async getTestList() {
-    return this.testRepo.find();
+  async getTestList(query: GetTestQueryDto) {
+    let condition: FindConditions<Test> = null;
+
+    if (query) {
+      if (query.testType === TestType.FULL_TEST) {
+        condition = { type: query.testType };
+      }
+      ///
+      else if (query.testType === TestType.SKILL_TEST && query.skill) {
+        condition = { type: query.testType, skills: query.skill };
+      }
+      ///
+      else if (query.testType === TestType.PART_TRAIN && query.partType) {
+        condition = { type: query.testType, partType: query.partType };
+      }
+    }
+    const result = condition
+      ? await this.testRepo.find({ where: condition })
+      : await this.testRepo.find();
+
+    return result;
   }
 
   async getTranscript(testId: string) {
@@ -421,18 +463,22 @@ export class TestService {
       .leftJoin('collection.part', 'part')
       .leftJoin('part.test', 'test')
       .where('test.id = :testId', { testId })
-      .select('collection.transcript')
+      .select(['collection.id', 'collection.transcript'])
       .getMany();
 
     if (collections.length == 0)
       throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
-    let transcriptDict = {};
+    let transcriptDict: TransDict = {};
     collections.forEach((collection) => {
       Object.keys(collection.transcript).forEach((questionNo) => {
-        transcriptDict[questionNo] = collection.transcript[questionNo];
+        transcriptDict[questionNo] = {
+          collectionId: collection.id,
+          content: collection.transcript[questionNo],
+        };
       });
     });
+
     return transcriptDict;
   }
 
@@ -450,14 +496,13 @@ export class TestService {
     const test = await this.testRepo.findOne({ where: { id: body.testId } });
     if (!Boolean(test)) throw new BadRequestException('testId does not exist');
 
-    const [answer, parts] = await Promise.all([
+    const [questionAnswers, parts] = await Promise.all([
       this.getAnswer(body.testId),
       this.partRepo.find({
         where: { testId: body.testId },
       }),
     ]);
 
-    let answer_sheet_history: AnswerSheet = { ...answer };
     let partScores: PartScores = {};
     parts.forEach((part) => {
       partScores[part.type] = {
@@ -468,13 +513,16 @@ export class TestService {
       };
     });
 
-    let listeningScore = 0,
-      readingScore = 0;
+    let listeningScore = 0;
+    let readingScore = 0;
 
-    Object.keys(answer_sheet_history).forEach((questionNo) => {
+    let answer_sheet_history: AnswerSheet = {};
+
+    Object.keys(questionAnswers).forEach((questionNo) => {
       const answer = body.answer_sheet[questionNo] || '';
-      const testAnswer = answer_sheet_history[questionNo].questionAnswer;
-      answer_sheet_history[questionNo].answer = answer;
+      const testAnswer = questionAnswers[questionNo].questionAnswer;
+
+      answer_sheet_history[questionNo] = answer;
 
       const partType = this.getPartType(Number(questionNo));
       if (answer === testAnswer) {

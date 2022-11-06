@@ -2,11 +2,16 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateConfigDto, UpdateUserDto } from './dto/update-user.dto';
+import {
+  UpdateConfigDto,
+  UpdatePasswordDto,
+  UpdateUserDto,
+} from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { compareHash, hashString } from 'src/common/utils/authHelper';
@@ -22,7 +27,7 @@ export class UserService {
     @InjectRepository(UserStatus)
     private userStatusRepo: Repository<UserStatus>,
     @InjectRepository(UserConfig)
-    private userConfigRepo: Repository<UserStatus>,
+    private userConfigRepo: Repository<UserConfig>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -54,11 +59,14 @@ export class UserService {
         },
       },
     });
-    const config = user.config;
+    const config = user.config || new UserConfig();
     if (new_config.goal) config.goal = new_config.goal;
     if (new_config.time_reminder)
       config.time_reminder = new_config.time_reminder;
     const updated_config = await this.userConfigRepo.save(config);
+
+    user.config = updated_config;
+    const updated_user = await this.userRepo.save(user);
     return updated_config;
   }
 
@@ -69,6 +77,24 @@ export class UserService {
       throw new BadRequestException(
         ResponseErrors.VALIDATION.PASSWORD_NOT_CHANGE,
       );
+
+    const new_hashed_password = await hashString(new_password);
+    await this.userRepo.update(user.id, { password: new_hashed_password });
+    await this.userRTRepo.delete({ userId: user.id }); //Remove all RefreshToken
+    return user;
+  }
+
+  async updatePassword(userId: string, updatePasswordDto: UpdatePasswordDto) {
+    const { current_password, new_password } = updatePasswordDto;
+
+    if (current_password === new_password)
+      throw new BadRequestException('new_password must be different');
+
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    const match = await compareHash(current_password, user.password);
+
+    if (!match)
+      throw new BadRequestException('current_password is not correct');
 
     const new_hashed_password = await hashString(new_password);
     await this.userRepo.update(user.id, { password: new_hashed_password });

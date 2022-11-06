@@ -124,9 +124,7 @@ export class TestController {
       transcriptDict,
       range,
     );
-    const getImageDataPromise = this.driverService.getListOfFiles(
-      body.folderId,
-    );
+    const getImageDataPromise = this.testService.getImagesData(body.folderId);
 
     const [collections, imagesData] = await Promise.all([
       getCollectionsPromise,
@@ -170,8 +168,16 @@ export class TestController {
           collection.range_start <= firstNumber &&
           firstNumber <= collection.range_end,
       );
-      const images = collections[collectionIndex].images;
-      collections[collectionIndex].images = [data.url, ...images];
+
+      if (firstNumber <= 6) {
+        const images = collections[collectionIndex].images;
+        collections[collectionIndex].images = [...images, data.url];
+      } else {
+        let orderIndex = 0;
+        const matches = data.name.match(/\((.*)\)/);
+        if (matches && matches.length > 1) orderIndex = Number(matches.pop());
+        collections[collectionIndex].images[orderIndex] = data.url;
+      }
     });
 
     collections.forEach((collection) => {
@@ -200,10 +206,12 @@ export class TestController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get Test Data with collection data` })
   async getWholeTest(
+    @Req() req: any,
     @Param('id') testId: string,
     @Query() query: GetTestQueryDto,
   ) {
-    return this.testService.getWholeTest(testId, query.skill);
+    const userId = req.user.id;
+    return this.testService.getWholeTest(testId, query.skill, userId);
   }
 
   @Delete(':id')
@@ -234,8 +242,8 @@ export class TestController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: `Get List of Test` })
-  async getTestList() {
-    return this.testService.getTestList();
+  async getTestList(@Query() query: GetTestQueryDto) {
+    return this.testService.getTestList(query);
   }
 
   @Get(':id/transcript')
