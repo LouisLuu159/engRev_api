@@ -24,11 +24,13 @@
     "migration:revert": "./node_modules/.bin/ts-node ./node_modules/.bin/typeorm migration:revert"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "7.17.0",
     "@nestjs-modules/mailer": "^1.8.1",
     "@nestjs/bull": "^0.6.1",
     "@nestjs/common": "^8.0.0",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^8.0.0",
+    "@nestjs/elasticsearch": "8.1.0",
     "@nestjs/jwt": "^9.0.0",
     "@nestjs/passport": "^9.0.0",
     "@nestjs/platform-express": "^8.0.0",
