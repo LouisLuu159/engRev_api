@@ -4,9 +4,10 @@ import { HistoryController } from './history.controller';
 import { UserHistory } from './entities/history.entity';
 import { HistoryDetail } from './entities/historyDetail.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { NoteModule } from 'src/note/note.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserHistory, HistoryDetail])],
+  imports: [NoteModule, TypeOrmModule.forFeature([UserHistory, HistoryDetail])],
   controllers: [HistoryController],
   providers: [HistoryService],
   exports: [HistoryService],

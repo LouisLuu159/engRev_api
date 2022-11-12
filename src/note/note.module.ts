@@ -23,5 +23,6 @@ import { ElasticsearchModule } from '@nestjs/elasticsearch';
   ],
   controllers: [NoteController],
   providers: [NoteService],
+  exports: [NoteService],
 })
 export class NoteModule {}

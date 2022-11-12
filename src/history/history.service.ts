@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { GetTestQueryDto } from 'src/eng_test/dto/query.dto';
 import { Skills, TestType } from 'src/eng_test/test.constant';
+import { NoteService } from 'src/note/note.service';
 import { Repository } from 'typeorm';
+import { AddHistoryNoteDto } from './dto/addNote.dto';
 import { UserHistory } from './entities/history.entity';
 import { HistoryDetail } from './entities/historyDetail.entity';
+import { HistoryNote } from './entities/historyNote.entity';
 import { PartScores } from './interface/history.interface';
 
 @Injectable()
@@ -14,6 +18,9 @@ export class HistoryService {
     private userHistoryRepo: Repository<UserHistory>,
     @InjectRepository(HistoryDetail)
     private historyDetailRepo: Repository<HistoryDetail>,
+    @InjectRepository(HistoryNote)
+    private historyNoteRepo: Repository<HistoryNote>,
+    private readonly noteService: NoteService,
   ) {}
 
   async saveHistory(history: UserHistory) {
@@ -159,5 +166,30 @@ export class HistoryService {
         created_at: 'ASC',
       },
     });
+  }
+
+  async createHistoryNote(
+    userId: string,
+    historyId: string,
+    historyNote: AddHistoryNoteDto,
+  ) {
+    const history = await this.userHistoryRepo.findOne({
+      where: { id: historyId },
+    });
+
+    if (!history) throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    const newNote = await this.noteService.createNote(userId, historyNote.note);
+    const creatingHistoryNote: HistoryNote = {
+      ...historyNote,
+      noteId: newNote.id,
+      note: { ...historyNote.note, id: newNote.id },
+      historyId: historyId,
+    };
+
+    const createdHistoryNote = await this.historyNoteRepo.save(
+      creatingHistoryNote,
+    );
+    return createdHistoryNote;
   }
 }
