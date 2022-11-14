@@ -2,25 +2,11 @@ import { Module } from '@nestjs/common';
 import { NoteService } from './note.service';
 import { NoteController } from './note.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ElasticsearchModule } from '@nestjs/elasticsearch';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Notes } from './entities/note.entity';
 
 @Module({
-  imports: [
-    ConfigModule,
-    ElasticsearchModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        node: configService.get('elasticSearch.NODE'),
-        auth: {
-          username: configService.get('elasticSearch.USERNAME'),
-          password: configService.get('elasticSearch.PASSWORD'),
-        },
-        maxRetries: 10,
-        requestTimeout: 60000,
-      }),
-      inject: [ConfigService],
-    }),
-  ],
+  imports: [ConfigModule, TypeOrmModule.forFeature([Notes])],
   controllers: [NoteController],
   providers: [NoteService],
   exports: [NoteService],

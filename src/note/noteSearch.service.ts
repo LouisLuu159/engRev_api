@@ -1,68 +1,71 @@
-import { Injectable } from '@nestjs/common';
-import { ElasticsearchService } from '@nestjs/elasticsearch';
-import { Repository } from 'typeorm';
-import { Notes } from './entities/note.entity';
+import { Client } from '@elastic/elasticsearch';
 
-export interface NoteSearchBody {
-  id: string;
-  wordKey: string;
-  tags?: string;
-  en_meaning?: string;
-  noteType: string;
-  color: string;
-}
+const Types = {
+  NOTE: 'Note',
+  WORD_KEYS: 'Word_keys',
+};
 
-export interface NoteSearchResult {
-  hits: {
-    total: number;
-    hits: Array<{
-      _source: NoteSearchBody;
-    }>;
-  };
-}
+const elasticsearchService = new Client({
+  node: 'http://127.0.0.1:9200',
+  auth: {
+    username: 'elastic',
+    password: 'elastic@engRev',
+  },
+});
 
-const type = 'Note';
-
-@Injectable()
 export class NoteSearchService {
-  constructor(private readonly elasticsearchService: ElasticsearchService) {}
-
-  async createNote(userId: string, noteBody: NoteSearchBody) {
-    return this.elasticsearchService.index<NoteSearchResult, NoteSearchBody>({
+  static async createNote(userId, noteBody) {
+    return elasticsearchService.index({
       index: userId,
       body: noteBody,
-      type: type,
+      type: Types.NOTE,
       id: noteBody.id,
     });
   }
 
-  async getListOfWordKey(userId: string) {
-    return this.elasticsearchService.search({
+  static async getListOfWordKey(userId) {
+    console.log('search');
+
+    const result = elasticsearchService.search({
       index: userId,
-      type: type,
+      type: Types.NOTE,
+    });
+    return result;
+
+    const checkIndexExist = await elasticsearchService.indices.exists({
+      index: userId,
+    });
+    if (!checkIndexExist) return [];
+    return checkIndexExist;
+
+    return elasticsearchService.search({
+      index: userId,
+      type: Types.NOTE,
       body: {
         aggs: {
-          distinct_colors: {
+          keys: {
             terms: {
-              field: 'wordKey',
+              field: 'wordKey.keyword',
             },
           },
         },
+        size: 0,
       },
     });
   }
 
-  async deleteNote(userId: string, noteId: string) {
-    return this.elasticsearchService.delete({
+  static async deleteNote(userId, noteId) {
+    return elasticsearchService.delete({
       index: userId,
       id: noteId,
-      type: type,
+      type: 'Note',
     });
   }
 
-  async searchNoteByWordKey(userId: string, text: string) {
-    const { body } = await this.elasticsearchService.search<NoteSearchResult>({
+  static async searchNoteByWordKey(userId, text) {
+    const { body } = await elasticsearchService.search({
       index: userId,
+      type: 'Note',
       body: {
         query: {
           bool: {
@@ -70,6 +73,16 @@ export class NoteSearchService {
           },
         },
       },
+    });
+
+    const hits = body.hits.hits;
+    return hits.map((item) => item._source);
+  }
+
+  static async getAllUserNotes(userId) {
+    const { body } = await elasticsearchService.search({
+      index: userId,
+      type: 'Note',
     });
     const hits = body.hits.hits;
     return hits.map((item) => item._source);

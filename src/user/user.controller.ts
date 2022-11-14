@@ -33,6 +33,7 @@ import { HistoryService } from 'src/history/history.service';
 import { UserConfig } from './entities/user_config.entity';
 import { GetTestQueryDto } from 'src/eng_test/dto/query.dto';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
+import { AddHistoryNoteDto } from 'src/history/dto/addNote.dto';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
@@ -122,5 +123,24 @@ export class UserController {
 
     if (!detail) throw new NotFoundException(ResponseErrors.NOT_FOUND);
     return detail;
+  }
+
+  @Post('/history/create-note/:historyId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Create History Note` })
+  async createHistoryNote(
+    @Req() req,
+    @Param('historyId') historyId: string,
+    @Body() body: AddHistoryNoteDto,
+  ) {
+    const userId = req.user.id;
+    const historyNote = await this.historyService.createHistoryNote(
+      userId,
+      historyId,
+      body,
+    );
+    return historyNote;
   }
 }

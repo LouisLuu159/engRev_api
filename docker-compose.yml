@@ -70,9 +70,21 @@ services:
     cap_add:
       - IPC_LOCK
     volumes:
-      - ./docker/elasticsearch-data:/usr/share/elasticsearch/data
+      - esdata:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
+    networks:
+      - eng_rev
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.4.0
+    links:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_USERNAME=${ELASTIC_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+    ports:
+      - 5601:5601
     networks:
       - eng_rev
 
@@ -83,5 +95,10 @@ networks:
 volumes:
   redis:
     driver: local
+  esdata:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./elasticsearch
+      o: bind
   postgres:
-  elasticsearch-data:
