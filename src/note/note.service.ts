@@ -1,58 +1,45 @@
+import { Client } from '@elastic/elasticsearch';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { Notes } from './entities/note.entity';
-
-export interface NoteSearchBody {
-  id: string;
-  wordKey: string;
-  tags?: string;
-  en_meaning?: string;
-  noteType: string;
-  color: string;
-}
-
-export interface NoteSearchResult {
-  hits: {
-    total: number;
-    hits: Array<{
-      _source: NoteSearchBody;
-    }>;
-  };
-}
+import { NoteSearchBody, NoteSearchService } from './noteSearch.service';
 
 @Injectable()
 export class NoteService {
   constructor(
+    private readonly noteSearchService: NoteSearchService,
     @InjectRepository(Notes)
     private readonly noteEntity: Repository<Notes>,
   ) {}
 
   async createNote(userId: string, note: CreateNoteDto) {
     const new_note = await this.noteEntity.save(note);
-    return new_note;
-  }
+    let noteBody: NoteSearchBody = {
+      id: new_note.id,
+      color: new_note.color,
+      en_meaning: new_note.en_meaning,
+      noteType: new_note.noteType,
+      tags: new_note.tags,
+      wordKey: new_note.wordKey,
+    };
 
-  async getNoteByWord(userId: string, word: string) {
-    const results = [];
-    const ids = results.map((result) => result.id);
-    if (!ids.length) {
-      return [];
+    try {
+      await this.noteSearchService.createNote(userId, noteBody);
+    } catch (error) {
+      await this.noteEntity.delete({ id: new_note.id });
     }
-
-    return this.noteEntity.find({
-      where: { id: In(ids) },
-    });
+    return new_note;
   }
 
   async deleteNote(userId: string, noteId: string) {
     await this.noteEntity.delete({ id: noteId });
-    // await NoteSearchService.deleteNote(userId, noteId);
+    await this.noteSearchService.deleteNote(userId, noteId);
   }
 
-  async getAllNote(userId: string) {
-    const results = [];
+  async getUserNotes(userId: string, word?: string) {
+    const results = await this.noteSearchService.getUserNotes(userId, word);
     const ids = results.map((result) => result.id);
     if (!ids.length) {
       return [];
@@ -61,9 +48,5 @@ export class NoteService {
     return this.noteEntity.find({
       where: { id: In(ids) },
     });
-  }
-
-  async getListOfWordKey(userId: string) {
-    return [];
   }
 }
