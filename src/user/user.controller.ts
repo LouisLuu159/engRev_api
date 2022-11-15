@@ -127,6 +127,17 @@ export class UserController {
     return detail;
   }
 
+  @Get('/history/note/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Get History's Note` })
+  async getHistoryNote(@Req() req, @Param('id') id: string) {
+    const userId = req.user.id;
+    const detail = await this.historyService.getHistoryNote(userId, id);
+    return detail;
+  }
+
   @Post('/history/note')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

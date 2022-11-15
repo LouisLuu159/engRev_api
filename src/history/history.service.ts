@@ -202,12 +202,11 @@ export class HistoryService {
     if (!oldHistoryNote) throw new NotFoundException(ResponseErrors.NOT_FOUND);
 
     const { note, ...rest } = updateHistoryNoteDto;
-    const updating_data = {
+    let updating_data = {
       ...oldHistoryNote,
       ...rest,
-      note: { ...oldHistoryNote.note, ...note },
     };
-    const newHistoryNote = await this.historyNoteRepo.save(updating_data);
+    let newHistoryNote = await this.historyNoteRepo.save(updating_data);
 
     if (updateHistoryNoteDto.note) {
       try {
@@ -216,6 +215,7 @@ export class HistoryService {
           newHistoryNote.noteId,
           updateHistoryNoteDto.note,
         );
+        newHistoryNote.note = updated_note;
       } catch (error) {
         await this.historyNoteRepo.save(oldHistoryNote);
         throw error;

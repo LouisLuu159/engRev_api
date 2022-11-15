@@ -69,6 +69,7 @@ export class NoteService {
     } catch (error) {
       console.log(error);
       await this.noteEntity.save(old_note);
+      throw error;
     }
     return updated_note;
   }

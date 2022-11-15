@@ -112,7 +112,7 @@ export class NoteSearchService {
   async updateNote(userId: string, noteBody: NoteSearchBody) {
     return this.elasticsearchService.update({
       index: userId,
-      body: { script: noteBody },
+      body: { doc: noteBody },
       type: Types.NOTE,
       id: noteBody.id,
     });
