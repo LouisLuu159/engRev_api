@@ -6,6 +6,7 @@ import { Skills, TestType } from 'src/eng_test/test.constant';
 import { NoteService } from 'src/note/note.service';
 import { Repository } from 'typeorm';
 import { AddHistoryNoteDto } from './dto/addNote.dto';
+import { UpdateHistoryNoteDto } from './dto/update-historyNote';
 import { UserHistory } from './entities/history.entity';
 import { HistoryDetail } from './entities/historyDetail.entity';
 import { HistoryNote } from './entities/historyNote.entity';
@@ -168,13 +169,10 @@ export class HistoryService {
     });
   }
 
-  async createHistoryNote(
-    userId: string,
-    historyId: string,
-    historyNote: AddHistoryNoteDto,
-  ) {
+  async createHistoryNote(userId: string, historyNote: AddHistoryNoteDto) {
+    const historyId = historyNote.historyId;
     const history = await this.userHistoryRepo.findOne({
-      where: { id: historyId },
+      where: { id: historyNote.historyId },
     });
 
     if (!history) throw new NotFoundException(ResponseErrors.NOT_FOUND);
@@ -191,5 +189,59 @@ export class HistoryService {
       creatingHistoryNote,
     );
     return createdHistoryNote;
+  }
+
+  async updateHistoryNote(
+    userId: string,
+    historyNoteId: string,
+    updateHistoryNoteDto: UpdateHistoryNoteDto,
+  ) {
+    const oldHistoryNote = await this.historyNoteRepo.findOne({
+      where: { id: historyNoteId },
+    });
+    if (!oldHistoryNote) throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    const { note, ...rest } = updateHistoryNoteDto;
+    const updating_data = {
+      ...oldHistoryNote,
+      ...rest,
+      note: { ...oldHistoryNote.note, ...note },
+    };
+    const newHistoryNote = await this.historyNoteRepo.save(updating_data);
+
+    if (updateHistoryNoteDto.note) {
+      try {
+        const updated_note = await this.noteService.updateNote(
+          userId,
+          newHistoryNote.noteId,
+          updateHistoryNoteDto.note,
+        );
+      } catch (error) {
+        await this.historyNoteRepo.save(oldHistoryNote);
+        throw error;
+      }
+    }
+
+    return newHistoryNote;
+  }
+
+  async deleteHistoryNote(userId: string, historyNoteId: string) {
+    const oldHistoryNote = await this.historyNoteRepo.findOne({
+      where: { id: historyNoteId },
+    });
+    await this.historyNoteRepo.delete({ id: historyNoteId });
+    await this.noteService.deleteNote(userId, oldHistoryNote.noteId);
+  }
+
+  async getHistoryNote(userId: string, historyId: string) {
+    return this.historyNoteRepo.find({
+      where: { historyId: historyId },
+      join: {
+        alias: 'historyNote',
+        leftJoinAndSelect: {
+          note: 'historyNote.note',
+        },
+      },
+    });
   }
 }

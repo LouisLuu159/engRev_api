@@ -48,9 +48,11 @@ export class NoteSearchService {
   }
 
   async getListOfNoteKey(userId: string) {
-    const checkIndexExist = await this.elasticsearchService.indices.exists({
+    const response = await this.elasticsearchService.indices.exists({
       index: userId,
     });
+    const checkIndexExist = response.body;
+    console.log(checkIndexExist);
     if (!checkIndexExist) return [];
 
     const { body } = await this.elasticsearchService.search({
@@ -81,6 +83,13 @@ export class NoteSearchService {
   }
 
   async getUserNotes(userId: string, word?: string) {
+    const response = await this.elasticsearchService.indices.exists({
+      index: userId,
+    });
+    const checkIndexExist = response.body;
+    console.log(checkIndexExist);
+    if (!checkIndexExist) return [];
+
     let searchBody = undefined;
     if (word)
       searchBody = {
@@ -98,5 +107,14 @@ export class NoteSearchService {
     });
     const hits = body.hits.hits;
     return hits.map((item) => item._source);
+  }
+
+  async updateNote(userId: string, noteBody: NoteSearchBody) {
+    return this.elasticsearchService.update({
+      index: userId,
+      body: { script: noteBody },
+      type: Types.NOTE,
+      id: noteBody.id,
+    });
   }
 }

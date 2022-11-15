@@ -3,7 +3,6 @@ import { Type } from 'class-transformer';
 import {
   IsIn,
   IsInt,
-  IsNotEmpty,
   IsOptional,
   Max,
   MaxLength,
@@ -11,17 +10,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { PartType } from 'src/eng_test/test.constant';
-import { CreateNoteDto } from 'src/note/dto/create-note.dto';
+import { UpdateNoteDto } from 'src/note/dto/update-note.dto';
 
-export class AddHistoryNoteDto {
-  @ApiProperty({
-    type: 'string',
-    required: true,
-  })
-  @IsNotEmpty()
-  @MaxLength(256)
-  historyId: string;
-
+export class UpdateHistoryNoteDto {
   @ApiProperty({
     type: 'number',
     example: 120,
@@ -45,11 +36,11 @@ export class AddHistoryNoteDto {
     enum: Object.values(PartType),
     required: true,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsIn(Object.values(PartType))
-  part: PartType;
+  part?: PartType;
 
   @ValidateNested()
-  @Type(() => CreateNoteDto)
-  note: CreateNoteDto;
+  @Type(() => UpdateNoteDto)
+  note?: UpdateNoteDto;
 }

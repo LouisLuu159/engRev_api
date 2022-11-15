@@ -13,6 +13,7 @@ import {
   Query,
   BadRequestException,
   NotFoundException,
+  Put,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,6 +35,7 @@ import { UserConfig } from './entities/user_config.entity';
 import { GetTestQueryDto } from 'src/eng_test/dto/query.dto';
 import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { AddHistoryNoteDto } from 'src/history/dto/addNote.dto';
+import { UpdateHistoryNoteDto } from 'src/history/dto/update-historyNote';
 @ApiTags('User')
 @Controller('user')
 export class UserController {
@@ -125,22 +127,50 @@ export class UserController {
     return detail;
   }
 
-  @Post('/history/create-note/:historyId')
+  @Post('/history/note')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()
   @ApiOkResponse({ description: `Create History Note` })
-  async createHistoryNote(
-    @Req() req,
-    @Param('historyId') historyId: string,
-    @Body() body: AddHistoryNoteDto,
-  ) {
+  async createHistoryNote(@Req() req, @Body() body: AddHistoryNoteDto) {
     const userId = req.user.id;
     const historyNote = await this.historyService.createHistoryNote(
       userId,
-      historyId,
       body,
     );
     return historyNote;
+  }
+
+  @Put('/history/note/:historyNoteId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Update History Note` })
+  async updateHistoryNote(
+    @Req() req,
+    @Param('historyNoteId') historyNoteId: string,
+    @Body() body: UpdateHistoryNoteDto,
+  ) {
+    const userId = req.user.id;
+    const newHistoryNote = await this.historyService.updateHistoryNote(
+      userId,
+      historyNoteId,
+      body,
+    );
+    return newHistoryNote;
+  }
+
+  @Delete('/history/note/:historyNoteId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Delete History Note` })
+  async deleteHistoryNote(
+    @Req() req,
+    @Param('historyNoteId') historyNoteId: string,
+  ) {
+    const userId = req.user.id;
+    await this.historyService.deleteHistoryNote(userId, historyNoteId);
+    return { message: 'Delete Successfully' };
   }
 }

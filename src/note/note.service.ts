@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CreateNoteDto } from './dto/create-note.dto';
+import { UpdateNoteDto } from './dto/update-note.dto';
 import { Notes } from './entities/note.entity';
 import { NoteSearchBody, NoteSearchService } from './noteSearch.service';
 
@@ -48,5 +49,27 @@ export class NoteService {
     return this.noteEntity.find({
       where: { id: In(ids) },
     });
+  }
+
+  async updateNote(userId: string, noteId: string, note: UpdateNoteDto) {
+    const old_note = await this.noteEntity.findOne({ where: { id: noteId } });
+    const new_note = { ...old_note, ...note };
+    let noteBody: NoteSearchBody = {
+      id: new_note.id,
+      color: new_note.color,
+      en_meaning: new_note.en_meaning,
+      noteType: new_note.noteType,
+      tags: new_note.tags,
+      wordKey: new_note.wordKey,
+    };
+
+    const updated_note = await this.noteEntity.save(new_note);
+    try {
+      await this.noteSearchService.updateNote(userId, noteBody);
+    } catch (error) {
+      console.log(error);
+      await this.noteEntity.save(old_note);
+    }
+    return updated_note;
   }
 }
