@@ -169,6 +169,17 @@ export class HistoryService {
     });
   }
 
+  async deleteHistory(userId: string, historyId: string) {
+    const historyNotes = await this.historyNoteRepo.find({
+      where: { historyId: historyId },
+    });
+    await this.userHistoryRepo.delete({ id: historyId });
+    await this.noteService.deleteMultipleNote(
+      userId,
+      historyNotes.map((note) => note.id),
+    );
+  }
+
   async createHistoryNote(userId: string, historyNote: AddHistoryNoteDto) {
     const historyId = historyNote.historyId;
     const history = await this.userHistoryRepo.findOne({

@@ -117,4 +117,18 @@ export class NoteSearchService {
       id: noteBody.id,
     });
   }
+
+  async deleteMultipleNote(userId: string, noteIds: string[]) {
+    return this.elasticsearchService.deleteByQuery({
+      index: userId,
+      type: Types.NOTE,
+      body: {
+        query: {
+          terms: {
+            _id: noteIds,
+          },
+        },
+      },
+    });
+  }
 }

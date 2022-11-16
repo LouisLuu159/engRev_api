@@ -127,6 +127,17 @@ export class UserController {
     return detail;
   }
 
+  @Delete('/history/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOkResponse({ description: `Delete History` })
+  async deleteHistory(@Req() req, @Param('id') id: string) {
+    const userId = req.user.id;
+    await this.historyService.deleteHistory(userId, id);
+    return { message: 'Delete Successfully' };
+  }
+
   @Get('/history/note/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

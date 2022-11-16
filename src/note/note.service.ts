@@ -73,4 +73,9 @@ export class NoteService {
     }
     return updated_note;
   }
+
+  async deleteMultipleNote(userId: string, noteIds: string[]) {
+    await this.noteEntity.delete({ id: In(noteIds) });
+    await this.noteSearchService.deleteMultipleNote(userId, noteIds);
+  }
 }
