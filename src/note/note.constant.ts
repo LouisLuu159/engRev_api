@@ -6,6 +6,7 @@ export enum WordType {
   'CONJ' = 'conjunction',
   'PREP' = 'conjunction',
   'IDIOM' = 'idiom',
+  'PHRASAL_VERB' = 'phrasal verb',
 }
 
 export enum NoteType {

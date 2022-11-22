@@ -138,7 +138,7 @@ export class UserController {
     return { message: 'Delete Successfully' };
   }
 
-  @Get('/history/note/:id')
+  @Get('/history/:id/notes')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth()

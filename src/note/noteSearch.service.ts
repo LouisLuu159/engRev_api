@@ -110,12 +110,27 @@ export class NoteSearchService {
   }
 
   async updateNote(userId: string, noteBody: NoteSearchBody) {
-    return this.elasticsearchService.update({
-      index: userId,
-      body: { doc: noteBody },
-      type: Types.NOTE,
-      id: noteBody.id,
-    });
+    const script = Object.entries(noteBody).reduce((result, [key, value]) => {
+      return `${result} ctx._source.${key}='${value}';`;
+    }, '');
+    try {
+      const note = await this.elasticsearchService.update_by_query({
+        index: userId,
+        body: {
+          query: {
+            match: {
+              id: noteBody.id,
+            },
+          },
+          script: {
+            inline: script,
+          },
+        },
+      });
+      return note;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async deleteMultipleNote(userId: string, noteIds: string[]) {
