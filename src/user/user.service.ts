@@ -190,4 +190,17 @@ export class UserService {
     const updated_user = await this.userRepo.save(new_user);
     return updated_status;
   }
+
+  async getUsersForReminder() {
+    const users = await this.userRepo.find({
+      join: {
+        alias: 'users',
+        leftJoinAndSelect: {
+          config: 'users.config',
+        },
+      },
+      select: ['email', 'id', 'config'],
+    });
+    return users;
+  }
 }

@@ -22,8 +22,10 @@ import { TestModule } from './eng_test/test.module';
 import { PartModule } from './part/part.module';
 import { HistoryModule } from './history/history.module';
 import { NoteModule } from './note/note.module';
+import { TaskModule } from './task/task.module';
 import mailerConfig from './common/config/mailerConfig';
 import elasticSearchConfig from './common/config/elasticSearchConfig';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -75,6 +77,7 @@ import elasticSearchConfig from './common/config/elasticSearchConfig';
         return config;
       },
     }),
+    ScheduleModule.forRoot(),
 
     AuthModule,
     UserModule,
@@ -83,6 +86,7 @@ import elasticSearchConfig from './common/config/elasticSearchConfig';
     PartModule,
     HistoryModule,
     NoteModule,
+    TaskModule,
   ],
   controllers: [AppController],
 

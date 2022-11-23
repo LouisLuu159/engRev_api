@@ -26,4 +26,10 @@ export class MailService {
       otp: otp,
     });
   }
+
+  async sendReminderMail(email: string): Promise<void> {
+    await this.mailQueue.add(EmailJobs.REMINDER, {
+      email: email,
+    });
+  }
 }
