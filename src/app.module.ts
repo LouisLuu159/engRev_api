@@ -21,13 +21,17 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { TestModule } from './eng_test/test.module';
 import { PartModule } from './part/part.module';
 import { HistoryModule } from './history/history.module';
+import { NoteModule } from './note/note.module';
+import { TaskModule } from './task/task.module';
 import mailerConfig from './common/config/mailerConfig';
+import elasticSearchConfig from './common/config/elasticSearchConfig';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [baseConfig, databaseConfig, mailerConfig],
+      load: [baseConfig, databaseConfig, mailerConfig, elasticSearchConfig],
     }),
 
     CacheModule.registerAsync({
@@ -73,6 +77,7 @@ import mailerConfig from './common/config/mailerConfig';
         return config;
       },
     }),
+    ScheduleModule.forRoot(),
 
     AuthModule,
     UserModule,
@@ -80,6 +85,8 @@ import mailerConfig from './common/config/mailerConfig';
     TestModule,
     PartModule,
     HistoryModule,
+    NoteModule,
+    TaskModule,
   ],
   controllers: [AppController],
 

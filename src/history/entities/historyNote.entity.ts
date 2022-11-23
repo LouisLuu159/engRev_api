@@ -12,40 +12,39 @@ import {
 } from 'typeorm';
 import { Test } from 'src/eng_test/entities/test.entity';
 import { HistoryDetail } from './historyDetail.entity';
-import { HistoryNote } from './historyNote.entity';
+import { PartType } from 'src/eng_test/test.constant';
+import { Notes } from 'src/note/entities/note.entity';
+import { UserHistory } from './history.entity';
 
-@Entity({ name: 'users_history' })
-export class UserHistory {
+@Entity({ name: 'history_note' })
+export class HistoryNote {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
 
   @Column({ nullable: true })
-  score: number;
+  questionNo?: number;
 
-  @ManyToOne(() => User, (user) => user.history, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
-  user?: User;
+  @Column({ nullable: true })
+  questionRange?: string;
 
   @Column()
-  userId: string;
+  part: PartType;
 
-  @ManyToOne(() => Test, (test) => test.history, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
-  test?: Test;
-
-  @Column()
-  testId: string;
-
-  @OneToOne(() => HistoryDetail)
+  @OneToOne(() => Notes)
   @JoinColumn()
-  detail?: HistoryDetail;
+  note: Notes;
 
-  @OneToMany(() => HistoryNote, (historyNote) => historyNote.history)
-  historyNote?: HistoryNote[];
+  @Column()
+  noteId: string;
+
+  @ManyToOne(() => UserHistory, (history) => history.historyNote, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  history?: UserHistory;
+
+  @Column()
+  historyId: string;
 
   @CreateDateColumn()
   created_at?: Date;

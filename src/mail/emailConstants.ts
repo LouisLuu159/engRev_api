@@ -1,5 +1,6 @@
 export const EmailJobs = {
   VERIFICATION: 'Verification',
+  REMINDER: 'Reminder',
 };
 
 export enum VerificationType {
@@ -10,4 +11,5 @@ export enum VerificationType {
 export const EmailTemplates = {
   ACTIVATION: 'activation',
   RESET_PASSWORD: 'reset_password',
+  REMINDER: 'reminder',
 };

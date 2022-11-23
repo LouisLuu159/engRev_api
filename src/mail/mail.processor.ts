@@ -89,4 +89,20 @@ export class MailProcessor {
 
     return result;
   }
+
+  @Process(EmailJobs.REMINDER)
+  async sendReminderEmail(job: Job<{ email: string }>): Promise<any> {
+    const logMessage = `Sending reminder email to '${job.data.email}'`;
+    this.logger.debug(logMessage);
+    this.winstonLogger.debug(logMessage);
+    let subject = '[EngRev] Practice Time';
+
+    const result = await this.mailerService.sendMail({
+      template: EmailTemplates.REMINDER,
+      to: job.data.email,
+      subject: subject,
+    });
+
+    return result;
+  }
 }

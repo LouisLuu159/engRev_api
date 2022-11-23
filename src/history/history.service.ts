@@ -1,10 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ResponseErrors } from 'src/common/constants/ResponseErrors';
 import { GetTestQueryDto } from 'src/eng_test/dto/query.dto';
 import { Skills, TestType } from 'src/eng_test/test.constant';
+import { NoteService } from 'src/note/note.service';
 import { Repository } from 'typeorm';
+import { AddHistoryNoteDto } from './dto/addNote.dto';
+import { UpdateHistoryNoteDto } from './dto/update-historyNote';
 import { UserHistory } from './entities/history.entity';
 import { HistoryDetail } from './entities/historyDetail.entity';
+import { HistoryNote } from './entities/historyNote.entity';
 import { PartScores } from './interface/history.interface';
 
 @Injectable()
@@ -14,6 +19,9 @@ export class HistoryService {
     private userHistoryRepo: Repository<UserHistory>,
     @InjectRepository(HistoryDetail)
     private historyDetailRepo: Repository<HistoryDetail>,
+    @InjectRepository(HistoryNote)
+    private historyNoteRepo: Repository<HistoryNote>,
+    private readonly noteService: NoteService,
   ) {}
 
   async saveHistory(history: UserHistory) {
@@ -88,6 +96,16 @@ export class HistoryService {
     ///
     else {
       historyQuery
+        .leftJoin('users_history.test', 'test')
+        .addSelect([
+          'test.id',
+          'test.name',
+          'test.duration',
+          'test.type',
+          'test.skills',
+          'test.partType',
+          'test.totalQuestions',
+        ])
         .leftJoin('users_history.detail', 'history_detail')
         .addSelect([
           'history_detail.id',
@@ -147,6 +165,93 @@ export class HistoryService {
       },
       order: {
         created_at: 'ASC',
+      },
+    });
+  }
+
+  async deleteHistory(userId: string, historyId: string) {
+    const historyNotes = await this.historyNoteRepo.find({
+      where: { historyId: historyId },
+    });
+    await this.userHistoryRepo.delete({ id: historyId });
+    await this.noteService.deleteMultipleNote(
+      userId,
+      historyNotes.map((note) => note.id),
+    );
+  }
+
+  async createHistoryNote(userId: string, historyNote: AddHistoryNoteDto) {
+    const historyId = historyNote.historyId;
+    const history = await this.userHistoryRepo.findOne({
+      where: { id: historyNote.historyId },
+    });
+
+    if (!history) throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    const newNote = await this.noteService.createNote(userId, historyNote.note);
+    const creatingHistoryNote: HistoryNote = {
+      ...historyNote,
+      noteId: newNote.id,
+      note: { ...historyNote.note, id: newNote.id },
+      historyId: historyId,
+    };
+
+    const createdHistoryNote = await this.historyNoteRepo.save(
+      creatingHistoryNote,
+    );
+    return createdHistoryNote;
+  }
+
+  async updateHistoryNote(
+    userId: string,
+    historyNoteId: string,
+    updateHistoryNoteDto: UpdateHistoryNoteDto,
+  ) {
+    const oldHistoryNote = await this.historyNoteRepo.findOne({
+      where: { id: historyNoteId },
+    });
+    if (!oldHistoryNote) throw new NotFoundException(ResponseErrors.NOT_FOUND);
+
+    const { note, ...rest } = updateHistoryNoteDto;
+    let updating_data = {
+      ...oldHistoryNote,
+      ...rest,
+    };
+    let newHistoryNote = await this.historyNoteRepo.save(updating_data);
+
+    if (updateHistoryNoteDto.note) {
+      try {
+        const updated_note = await this.noteService.updateNote(
+          userId,
+          newHistoryNote.noteId,
+          updateHistoryNoteDto.note,
+        );
+        newHistoryNote.note = updated_note;
+      } catch (error) {
+        await this.historyNoteRepo.save(oldHistoryNote);
+        throw error;
+      }
+    }
+
+    return newHistoryNote;
+  }
+
+  async deleteHistoryNote(userId: string, historyNoteId: string) {
+    const oldHistoryNote = await this.historyNoteRepo.findOne({
+      where: { id: historyNoteId },
+    });
+    await this.historyNoteRepo.delete({ id: historyNoteId });
+    await this.noteService.deleteNote(userId, oldHistoryNote.noteId);
+  }
+
+  async getHistoryNote(userId: string, historyId: string) {
+    return this.historyNoteRepo.find({
+      where: { historyId: historyId },
+      join: {
+        alias: 'historyNote',
+        leftJoinAndSelect: {
+          note: 'historyNote.note',
+        },
       },
     });
   }
