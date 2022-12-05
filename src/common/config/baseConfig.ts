@@ -10,6 +10,8 @@ export const BaseConfigKey = {
   REDIS: 'base.redis',
   RATE_LIMIT: 'base.throttle',
   USER_WEB_URL: 'base.user_web_url',
+  ADMIN_KEY: 'base.admin_key',
+  ADMIN_SECRETE: 'base.admin_secrete',
 };
 
 export default registerAs('base', () => ({
@@ -22,7 +24,7 @@ export default registerAs('base', () => ({
   rt_expire: process.env.JWT_REFRESHTOKEN_EXPIRATION,
 
   redis: {
-    host: process.env.REDIS_HOST,
+    host: 'localhost',
     port: Number(process.env.REDIS_PORT),
   },
 
@@ -32,4 +34,7 @@ export default registerAs('base', () => ({
   },
 
   user_web_url: 'http://localhost:5001',
+
+  admin_secrete: '$2a$10$o6NJz795S4tTR5TvYTxhS.pB/Vc5kXcY8eT1QIytNa9NowZ5A7HB6',
+  admin_key: 'louisluu@gmail.com',
 }));

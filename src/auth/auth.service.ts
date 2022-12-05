@@ -348,8 +348,12 @@ export class AuthService {
     password: string,
     request: Request,
   ) {
-    const valid = await compareHash(password, process.env.ADMIN_SECRETE);
-    const validCredential = username == process.env.ADMIN_KEY && valid;
+    const valid = await compareHash(
+      password,
+      this.configService.get(BaseConfigKey.ADMIN_SECRETE),
+    );
+    const validCredential =
+      username == this.configService.get(BaseConfigKey.ADMIN_KEY) && valid;
 
     if (!validCredential) throw new ForbiddenException('No right to access');
 
