@@ -12,6 +12,10 @@ export const BaseConfigKey = {
   USER_WEB_URL: 'base.user_web_url',
   ADMIN_KEY: 'base.admin_key',
   ADMIN_SECRETE: 'base.admin_secrete',
+  AWS_SECRETE_KEY: 'base.aws.secrete_key',
+  AWS_ACCESS_KEY: 'base.aws.access_key',
+  AWS_REGION: 'base.aws.region',
+  AWS_BUCKET: 'base.aws.bucket',
 };
 
 export default registerAs('base', () => ({
@@ -33,8 +37,15 @@ export default registerAs('base', () => ({
     limit: 20,
   },
 
-  user_web_url: 'http://localhost:5001',
+  user_web_url: process.env.USER_WEB_URL,
 
   admin_secrete: '$2a$10$o6NJz795S4tTR5TvYTxhS.pB/Vc5kXcY8eT1QIytNa9NowZ5A7HB6',
-  admin_key: 'louisluu@gmail.com',
+  admin_key: process.env.ADMIN_KEY,
+
+  aws: {
+    access_key: process.env.AWS_ACCESS_KEY,
+    secrete_key: process.env.AWS_SECRETE_KEY,
+    region: process.env.AWS_REGION,
+    bucket: process.env.AWS_BUCKET,
+  },
 }));

@@ -34,18 +34,18 @@ import * as fs from 'fs';
 import * as pathHandler from 'path';
 import { UploadTestBodyDto } from './dto/uploadTest.dto';
 import { Test } from './entities/test.entity';
-import { DriverService } from './driver.service';
 import { GetTestQueryDto } from './dto/query.dto';
 import { AdminGuard } from 'src/auth/guard/admin.guard';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { SubmitTestDto } from './dto/submitTest.dto';
+import { S3ClientService } from './s3Client.service';
 
 @ApiTags('Test')
 @Controller('test')
 export class TestController {
   constructor(
     private readonly testService: TestService,
-    private readonly driverService: DriverService,
+    private readonly s3ClientService: S3ClientService,
   ) {}
 
   @Post('upload')
@@ -124,7 +124,9 @@ export class TestController {
       transcriptDict,
       range,
     );
-    const getImageDataPromise = this.testService.getImagesData(body.folderId);
+    const getImageDataPromise = this.s3ClientService.getImagesData(
+      body.folderId,
+    );
 
     const [collections, imagesData] = await Promise.all([
       getCollectionsPromise,
