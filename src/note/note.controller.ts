@@ -18,15 +18,11 @@ import { CreateNoteDto } from './dto/create-note.dto';
 import { GetNoteQueryDto } from './dto/query.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { NoteService } from './note.service';
-import { NoteSearchService } from './noteSearch.service';
 
 @ApiTags('Note')
 @Controller('note')
 export class NoteController {
-  constructor(
-    private readonly noteSearchService: NoteSearchService,
-    private readonly noteService: NoteService,
-  ) {}
+  constructor(private readonly noteService: NoteService) {}
 
   @Post('')
   @UseGuards(JwtAuthGuard)
@@ -46,16 +42,6 @@ export class NoteController {
     const userId = req.user.id;
     const newNote = await this.noteService.getUserNotes(userId, query.wordKey);
     return newNote;
-  }
-
-  @Get('note-key/list')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: `Get user's note keys` })
-  async getListOfNoteKey(@Req() req) {
-    const userId = req.user.id;
-    const noteKeys = await this.noteSearchService.getListOfNoteKey(userId);
-    return { noteKeys: noteKeys };
   }
 
   @Delete(':id')

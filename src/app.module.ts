@@ -24,14 +24,13 @@ import { HistoryModule } from './history/history.module';
 import { NoteModule } from './note/note.module';
 import { TaskModule } from './task/task.module';
 import mailerConfig from './common/config/mailerConfig';
-import elasticSearchConfig from './common/config/elasticSearchConfig';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [baseConfig, databaseConfig, mailerConfig, elasticSearchConfig],
+      load: [baseConfig, databaseConfig, mailerConfig],
     }),
 
     CacheModule.registerAsync({

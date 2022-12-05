@@ -42,52 +42,6 @@ services:
     networks:
       - eng_rev
 
-  mailhog:
-    image: mailhog/mailhog
-    logging:
-      driver: 'none' # disable saving logs
-    ports:
-      - 1025:1025 # smtp server
-      - 8025:8025 # web ui
-    networks:
-      - eng_rev
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
-    container_name: elasticsearch
-    restart: always
-    environment:
-      - xpack.security.enabled=false
-      - discovery.type=single-node
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    cap_add:
-      - IPC_LOCK
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
-    networks:
-      - eng_rev
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:7.4.0
-    links:
-      - elasticsearch
-    environment:
-      - ELASTICSEARCH_USERNAME=${ELASTIC_USERNAME}
-      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
-    ports:
-      - 5601:5601
-    networks:
-      - eng_rev
-
 networks:
   eng_rev:
     driver: bridge
@@ -95,10 +49,4 @@ networks:
 volumes:
   redis:
     driver: local
-  esdata:
-    driver: local
-    driver_opts:
-      type: none
-      device: ./elasticsearch
-      o: bind
   postgres:
